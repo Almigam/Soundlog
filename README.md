@@ -1,2 +1,2 @@
 # SOUNDLOG
-Aplicación de escritorio para la gestión de archivos de audio, con funcionalidades de reproducción, organización y edición básica. Permite a los usuarios crear listas de reproducción personalizadas, etiquetar archivos con metadatos y realizar ajustes de audio como ecualización y normalización. Además, ofrece una interfaz intuitiva para facilitar la navegación y el acceso rápido a la biblioteca de música.
+Aplicación web para reseñar álbumes y canciones. Permite a los usuarios calificar canciones/albumes y compartir sus propias reseñas en su perfil permitiendo que otros usuarios ven sus ultimas reseñas, sus álbumes favoritos, etc.
