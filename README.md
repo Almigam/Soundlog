@@ -1,2 +1,2 @@
-# StudyTimer
-Aplicación de Pomodoro timer colaborativa entre alumnos. Basada en nube Microsoft Azure
+# SOUNDLOG
+Aplicación de escritorio para la gestión de archivos de audio, con funcionalidades de reproducción, organización y edición básica. Permite a los usuarios crear listas de reproducción personalizadas, etiquetar archivos con metadatos y realizar ajustes de audio como ecualización y normalización. Además, ofrece una interfaz intuitiva para facilitar la navegación y el acceso rápido a la biblioteca de música.
