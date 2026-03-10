@@ -1,3 +1,4 @@
+#Archivo de configuración de Terraform para definir los outputs del módulo principal.
 output "resource_group_name" {
   description = "Nombre del Resource Group creado"
   value       = azurerm_resource_group.main.name

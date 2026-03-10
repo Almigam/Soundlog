@@ -1,4 +1,4 @@
-#El estado de Terraform se guarda en Azure Storage
+#El estado de Terraform se guarda en Azure Storage.
 terraform {
   backend "azurerm" {
     resource_group_name  = "rg-soundlog-tfstate"
