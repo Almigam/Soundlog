@@ -8,3 +8,8 @@ output "resource_group_location" {
   description = "Región donde se desplegó el Resource Group"
   value       = azurerm_resource_group.main.location
 }
+
+output "frontend_url" {
+  description = "URL del sitio web estático desplegado en Azure Storage"
+  value       = azurerm_storage_account.frontend.primary_web_endpoint
+}

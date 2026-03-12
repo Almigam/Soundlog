@@ -14,7 +14,7 @@ terraform.tfvars
 
 # Caché y plugins de Terraform
 .terraform/
-.terraform.lock.hcl   # opcional: algunos equipos sí lo commitean
+.terraform.lock.hcl   
 
 # Outputs con datos sensibles
 crash.log
