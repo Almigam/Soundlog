@@ -13,3 +13,8 @@ output "frontend_url" {
   description = "URL del sitio web estático desplegado en Azure Storage"
   value       = azurerm_storage_account.frontend.primary_web_endpoint
 }
+
+output "images_storage_url" {
+  description = "URL base del storage de imágenes"
+  value       = azurerm_storage_account.images.primary_blob_endpoint
+}
