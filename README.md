@@ -7,4 +7,3 @@ Azure Blob Storage
 Azure Active Directory B2C
 Azure Key Vault
 Azure CDN
-
