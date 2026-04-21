@@ -13,7 +13,7 @@ from core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -33,14 +33,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Obtener usuario actual desde token"""
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
+    """Obtener ID del usuario actual desde el token JWT"""
     credential_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
@@ -48,10 +48,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        user_id: int = payload.get("sub")
+        user_id: Optional[str] = payload.get("sub")
         if user_id is None:
             raise credential_exception
     except JWTError:
         raise credential_exception
-    
-    return user_id
+
+    return int(user_id)  # convertir a int explícitamente
