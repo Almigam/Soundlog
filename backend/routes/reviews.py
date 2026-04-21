@@ -162,4 +162,3 @@ async def delete_review(
         )
     db.delete(review)
     db.commit()
-    return None
