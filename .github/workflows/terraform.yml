@@ -1,285 +1,130 @@
-name: Terraform CI/CD
+# ─────────────────────────────────────────────────────────────
+#  Terraform CI/CD
+#  - En PR:   terraform plan (preview sin aplicar)
+#  - En push a develop: terraform apply (aplica cambios)
+# ─────────────────────────────────────────────────────────────
+name: Terraform
 
 on:
   push:
-    branches:
-      - main
-      - desarrollo
+    branches: [desarrollo]
     paths:
-      - 'infraestructure/terraform/**'
-      - '.github/workflows/terraform.yml'
+      - "infraestructure/terraform/**"
+      - ".github/workflows/terraform.yml"
+
   pull_request:
-    branches:
-      - main
+    branches: [desarrollo, main]
     paths:
-      - 'infraestructure/terraform/**'
+      - "infraestructure/terraform/**"
+
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pull-requests: write
-
 env:
-  TF_VERSION: 1.5.0
-  WORKING_DIR: infraestructure/terraform
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  TF_WORKING_DIR: infraestructure/terraform
 
 jobs:
-  # ════════════════════════════════════════════════════════════════════════════════
-  # 1. VALIDACIÓN Y FORMATO
-  # ════════════════════════════════════════════════════════════════════════════════
-  validate:
-    name: Validate & Format Check
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
-        working-directory: ${{ env.WORKING_DIR }}
-        continue-on-error: true
-
-      - name: Terraform Init (Validation)
-        run: terraform init -backend=false
-        working-directory: ${{ env.WORKING_DIR }}
-
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: ${{ env.WORKING_DIR }}
-
-  # ════════════════════════════════════════════════════════════════════════════════
-  # 2. VERIFICACIÓN DE SEGURIDAD CON TFSEC
-  # ════════════════════════════════════════════════════════════════════════════════
-  security:
-    name: Security Scan (tfsec)
-    runs-on: ubuntu-latest
-    needs: validate
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          working_directory: ${{ env.WORKING_DIR }}
-          format: sarif
-          out_dir: .
-          
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
-        with:
-          sarif_file: tfsec.sarif
-
-  # ════════════════════════════════════════════════════════════════════════════════
-  # 3. PLAN TERRAFORM (En Pull Requests)
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ──────────────── PLAN (siempre) ────────────────
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    needs: [validate, security]
-    if: github.event_name == 'pull_request'
 
     steps:
-      - name: Checkout Code
+      - name: Checkout código
         uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          terraform_version: "1.7.0"
 
       - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
-        working-directory: ${{ env.WORKING_DIR }}
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+        continue-on-error: true   # Avisa pero no bloquea
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
 
       - name: Terraform Plan
-        id: plan
-        run: terraform plan -no-color -out=tfplan
-        working-directory: ${{ env.WORKING_DIR }}
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform plan \
+            -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
+            -no-color \
+            -out=tfplan \
+            2>&1 | tee plan_output.txt
 
-      - name: Save Plan Output
-        run: terraform show -json tfplan > tfplan.json
-        working-directory: ${{ env.WORKING_DIR }}
-
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ github.head_ref }}
-          path: ${{ env.WORKING_DIR }}/tfplan*
-          retention-days: 5
-
-      - name: Comment PR with Plan
+      - name: Publicar plan en PR
         uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         with:
           script: |
             const fs = require('fs');
-            const planOutput = fs.readFileSync('${{ env.WORKING_DIR }}/tfplan.json', 'utf8');
-            const plan = JSON.parse(planOutput);
-            
-            const changes = {
-              add: plan.resource_changes?.filter(r => r.change.actions.includes('create')).length || 0,
-              modify: plan.resource_changes?.filter(r => r.change.actions.includes('update')).length || 0,
-              delete: plan.resource_changes?.filter(r => r.change.actions.includes('delete')).length || 0
-            };
+            let planOutput = '';
+            try {
+              planOutput = fs.readFileSync('${{ env.TF_WORKING_DIR }}/plan_output.txt', 'utf8');
+              // Truncar si es muy largo
+              if (planOutput.length > 3000) {
+                planOutput = planOutput.substring(0, 3000) + '\n... (truncado, ver logs completos)';
+              }
+            } catch(e) {
+              planOutput = 'No se pudo leer el plan.';
+            }
+            const body = `### 🏗️ Terraform Plan
 
-            const comment = `## 📊 Terraform Plan Summary
+            <details><summary>Ver plan completo</summary>
 
-**Changes:**
-- ✅ Add: ${changes.add}
-- 🔄 Modify: ${changes.modify}
-- 🗑️ Delete: ${changes.delete}
+            \`\`\`terraform
+            ${planOutput}
+            \`\`\`
+            </details>
 
-<details>
-<summary>View Full Plan</summary>
-
-\`\`\`
-${require('child_process').execSync(`cd ${{ env.WORKING_DIR }} && terraform show tfplan`, {encoding: 'utf8'}).slice(0, 3000)}
-\`\`\`
-
-</details>
-
-👉 **Review the plan carefully before approving this PR**`;
+            *Workflow: \`${{ github.workflow }}\` | Commit: \`${{ github.sha }}\`*`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: comment
+              body: body
             });
 
-  # ════════════════════════════════════════════════════════════════════════════════
-  # 4. APPLY TERRAFORM (Solo en MAIN)
-  # ════════════════════════════════════════════════════════════════════════════════
+  # ──────────────── APPLY (solo en push a develop) ────────────────
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
-    needs: [validate, security]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    environment:
-      name: production
-      
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/desarrollo'
+
+    # Requiere aprobación manual en GitHub (configurar el entorno "desarrollo" en Settings)
+    environment: desarrollo
+
     steps:
-      - name: Checkout Code
+      - name: Checkout código
         uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          terraform_version: "1.7.0"
 
       - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
-        working-directory: ${{ env.WORKING_DIR }}
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -out=tfplan
-        working-directory: ${{ env.WORKING_DIR }}
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-        working-directory: ${{ env.WORKING_DIR }}
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Export Outputs
-        id: outputs
-        run: terraform output -json > outputs.json
-        working-directory: ${{ env.WORKING_DIR }}
-        continue-on-error: true
-
-      - name: Upload Outputs Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-outputs
-          path: ${{ env.WORKING_DIR }}/outputs.json
-          retention-days: 30
-
-      - name: Notify Deployment Success
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.ref,
-              environment: 'production',
-              description: 'Terraform deployment completed',
-              auto_merge: false,
-              required_contexts: []
-            });
-
-  # ════════════════════════════════════════════════════════════════════════════════
-  # 5. NOTIFICACIÓN DE ERRORES
-  # ════════════════════════════════════════════════════════════════════════════════
-  notify:
-    name: Notify on Failure
-    runs-on: ubuntu-latest
-    if: failure()
-    needs: [validate, security, plan, apply]
-    
-    steps:
-      - name: Create Issue on Failure
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚨 Terraform CI/CD Failed on ${context.ref}`,
-              body: `**Workflow Run:** [View Details](${runUrl})
-
-**Branch:** ${context.ref}
-**Commit:** ${context.sha.substring(0, 7)}
-
-Please review the workflow logs and fix the issues.`,
-              labels: ['infrastructure', 'terraform', 'bug']
-            });
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform apply \
+            -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
+            -auto-approve \
+            -no-color

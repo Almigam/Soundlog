@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────
+#  Frontend CI/CD — Build + Deploy a Azure Blob Storage
+#  Se ejecuta en cada push a desarrollo
+# ─────────────────────────────────────────────────────────────
+name: Frontend — Build & Deploy
+
+on:
+  push:
+    branches: [desarrollo]
+    paths:
+      - "frontend/**"       # Solo si cambia algo en frontend
+      - ".github/workflows/frontend.yml"
+
+  workflow_dispatch:        # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  build-and-deploy:
+    name: Build Vite → Azure Blob Storage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: TypeScript — comprobar tipos
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      # Variables de entorno para el build
+      # La URL del backend se inyecta en tiempo de build
+      - name: Build
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+        # Genera la carpeta frontend/dist/
+
+      - name: Setup Azure CLI
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Sube el contenido de dist/ al contenedor $web del Blob Storage
+      - name: Deploy a Azure Blob Storage
+        run: |
+          az storage blob upload-batch \
+            --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+            --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+            --destination '$web' \
+            --source frontend/dist \
+            --overwrite true
+
+      # Limpia la caché del CDN si tienes Azure CDN configurado
+      # (descomenta cuando lo tengas)
+      # - name: Purge CDN cache
+      #   run: |
+      #     az cdn endpoint purge \
+      #       --resource-group rg-soundlog-dev \
+      #       --profile-name soundlog-cdn \
+      #       --name soundlog-endpoint \
+      #       --content-paths '/*'
+
+      - name: ✅ Deploy completado
+        run: |
+          echo "Frontend desplegado en:"
+          echo "https://soundlogdevfrontend.z28.web.core.windows.net/"
