@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 #  Terraform CI/CD
 #  - En PR:   terraform plan (preview sin aplicar)
-#  - En push a develop: terraform apply (aplica cambios)
+#  - En push a desarrollo : terraform apply (aplica cambios)
 # ─────────────────────────────────────────────────────────────
 name: Terraform
 
