@@ -60,3 +60,12 @@ resource "azurerm_storage_container" "album_covers" {
   storage_account_name = azurerm_storage_account.images.name
   container_access_type = "blob" 
 }
+
+resource "azurerm_mssql_server" "main" {
+  name                         = "soundlog-sql-server"
+  resource_group_name          = azurerm_resource_group.main.name
+  location                     = azurerm_resource_group.main.location
+  version                      = "12.0"
+  administrator_login          = "sqladmin"
+  administrator_login_password = var.sql_admin_password
+}
