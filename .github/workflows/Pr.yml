@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────
-#  PR Checks — se ejecuta en cada Pull Request
-#  Valida que el código esté limpio antes de mergear
+#  PR Checks — valida código antes de mergear
+#  Usa OIDC para el plan de Terraform
 # ─────────────────────────────────────────────────────────────
 name: PR Checks
 
@@ -38,7 +38,7 @@ jobs:
         working-directory: frontend
         run: npx eslint src --ext .ts,.tsx --max-warnings 0
 
-      - name: Comprobar que el build funciona
+      - name: Build de verificación
         working-directory: frontend
         run: npm run build
 
@@ -64,9 +64,9 @@ jobs:
           pip install -r requirements.txt
           pip install flake8 pytest pytest-asyncio httpx
 
-      - name: Flake8 — estilo de código
+      - name: Flake8
         working-directory: backend
-        run: flake8 . --max-line-length=120 --exclude=__pycache__,.venv
+        run: flake8 . --max-line-length=120 --exclude=__pycache__,.venv,logs
 
       - name: Tests
         working-directory: backend
@@ -74,18 +74,19 @@ jobs:
           DATABASE_URL: "sqlite:///./test.db"
           SECRET_KEY: "test-secret-key-only-for-ci-32chars!!"
           ENVIRONMENT: "testing"
-        run: pytest tests/ -v --tb=short || echo "⚠️ No hay tests aún — crea tests/test_health.py"
+        run: |
+          pytest tests/ -v --tb=short \
+            || echo "⚠️ No hay tests todavía"
 
   # ──────────────── TERRAFORM ────────────────
   terraform-plan:
-    name: Terraform — Plan (preview de cambios)
+    name: Terraform — Plan
     runs-on: ubuntu-latest
 
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout código
@@ -95,6 +96,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.7.0"
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform Init
         working-directory: infraestructure/terraform
@@ -106,22 +114,33 @@ jobs:
 
       - name: Terraform Plan
         working-directory: infraestructure/terraform
-        run: terraform plan -no-color -out=tfplan
-        continue-on-error: true
+        env:
+          ARM_USE_OIDC: "true"
+          ARM_USE_AZUREAD: "true"
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          terraform plan \
+            -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
+            -no-color \
+            2>&1 | tee plan_output.txt
 
-      - name: Publicar plan como comentario en el PR
+      - name: Comentar plan en PR
         uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
+        if: always()
         with:
           script: |
-            const output = `### 📋 Terraform Plan
-            \`\`\`
-            Ver los logs del job terraform-plan para los detalles del plan.
-            \`\`\`
-            *Workflow: \`${{ github.workflow }}\` | Rama: \`${{ github.ref }}\`*`;
+            const fs = require('fs');
+            let plan = '';
+            try {
+              plan = fs.readFileSync('infraestructure/terraform/plan_output.txt', 'utf8');
+              if (plan.length > 3000) plan = plan.substring(0, 3000) + '\n...(truncado)';
+            } catch(e) { plan = 'No se pudo leer el plan.'; }
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: output
-            })
+              body: `### 🏗️ Terraform Plan\n<details><summary>Ver plan</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n</details>`
+            });

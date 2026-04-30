@@ -1,13 +1,12 @@
 # ─────────────────────────────────────────────────────────────
-#  Terraform CI/CD
-#  - En PR:   terraform plan (preview sin aplicar)
-#  - En push a desarrollo : terraform apply (aplica cambios)
+#  Terraform CI/CD con OIDC (Managed Identity)
+#  Sin contraseñas — Azure confía en GitHub directamente
 # ─────────────────────────────────────────────────────────────
 name: Terraform
 
 on:
   push:
-    branches: [desarrollo]
+    branches: [desarrollo, main]
     paths:
       - "infraestructure/terraform/**"
       - ".github/workflows/terraform.yml"
@@ -20,10 +19,6 @@ on:
   workflow_dispatch:
 
 env:
-  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
   TF_WORKING_DIR: infraestructure/terraform
 
 jobs:
@@ -32,6 +27,12 @@ jobs:
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
+
+    # Permisos necesarios para OIDC
+    permissions:
+      id-token: write   # Pedir token OIDC a GitHub
+      contents: read    # Leer el repo
+      pull-requests: write  # Comentar en PRs
 
     steps:
       - name: Checkout código
@@ -42,6 +43,14 @@ jobs:
         with:
           terraform_version: "1.7.0"
 
+      # Login en Azure usando OIDC — sin contraseñas
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
@@ -49,7 +58,7 @@ jobs:
       - name: Terraform Format Check
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform fmt -check -recursive
-        continue-on-error: true   # Avisa pero no bloquea
+        continue-on-error: true
 
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -57,6 +66,12 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          ARM_USE_OIDC: "true"
+          ARM_USE_AZUREAD: "true"
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           terraform plan \
             -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
@@ -73,7 +88,6 @@ jobs:
             let planOutput = '';
             try {
               planOutput = fs.readFileSync('${{ env.TF_WORKING_DIR }}/plan_output.txt', 'utf8');
-              // Truncar si es muy largo
               if (planOutput.length > 3000) {
                 planOutput = planOutput.substring(0, 3000) + '\n... (truncado, ver logs completos)';
               }
@@ -84,7 +98,7 @@ jobs:
 
             <details><summary>Ver plan completo</summary>
 
-            \`\`\`terraform
+            \`\`\`
             ${planOutput}
             \`\`\`
             </details>
@@ -104,9 +118,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: plan
     if: github.event_name == 'push' && github.ref == 'refs/heads/desarrollo'
+    environment: desarrollo  # Aprobación manual en GitHub Settings
 
-    # Requiere aprobación manual en GitHub (configurar el entorno "desarrollo" en Settings)
-    environment: desarrollo
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout código
@@ -117,12 +133,25 @@ jobs:
         with:
           terraform_version: "1.7.0"
 
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          ARM_USE_OIDC: "true"
+          ARM_USE_AZUREAD: "true"
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           terraform apply \
             -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \

@@ -1,15 +1,15 @@
 # ─────────────────────────────────────────────────────────────
 #  Backend CI/CD — Tests + Deploy a Azure App Service
-#  Se ejecuta en cada push a desarrollo
+#  Se ejecuta en cada push a develop
 #
-#  NOTA: El paso de deploy descomentado hasta desplegar
-#  el App Service con Terraform.
+#  NOTA: El paso de deploy está comentado hasta que despliegues
+#  el App Service con Terraform. Solo descoméntalo entonces.
 # ─────────────────────────────────────────────────────────────
 name: Backend — Tests & Deploy
 
 on:
   push:
-    branches: [develop]
+    branches: [desarrollo]
     paths:
       - "backend/**"        # Solo si cambia algo en backend
       - ".github/workflows/backend.yml"
@@ -59,8 +59,8 @@ jobs:
             || echo "⚠️ No hay tests todavía — crea tests/test_health.py"
 
   # ──────────────── DEPLOY ────────────────
-  # DESCOMENTAR ESTE JOB cuando tengas el App Service desplegado con Terraform
-  # Y se haya descargado el Publish Profile desde Azure Portal y lo hayas
+  # DESCOMENTA ESTE JOB cuando tengas el App Service desplegado con Terraform
+  # y hayas descargado el Publish Profile desde Azure Portal y lo hayas
   # añadido como secret AZURE_WEBAPP_PUBLISH_PROFILE en GitHub.
   #
   # deploy:
