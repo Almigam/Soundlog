@@ -18,3 +18,7 @@ output "images_storage_url" {
   description = "URL base del storage de imágenes"
   value       = azurerm_storage_account.images.primary_blob_endpoint
 }
+output "backend_url" {
+  description = "URL de la aplicación web backend desplegada en Azure App Service"
+  value = azurerm_linux_web_app.backend.default_hostname
+}

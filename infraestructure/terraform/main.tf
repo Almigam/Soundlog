@@ -68,4 +68,45 @@ resource "azurerm_mssql_server" "main" {
   version                      = "12.0"
   administrator_login          = "sqladmin"
   administrator_login_password = var.sql_admin_password
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+resource "azurerm_service_plan" "backend_plan" {
+  name                = "soundlog-backend-plan"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  os_type             = "Linux"
+  sku_name            = "B1"
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+resource "azurerm_linux_web_app" "backend" {
+  name                = "soundlog-backend"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  service_plan_id     = azurerm_service_plan.backend_plan.id
+
+  site_config {
+    application_stack {
+      python_version = "3.10"
+    }
+  }
+
+  app_settings = {
+    "WEBSITE_RUN_FROM_PACKAGE" = "1"
+    "DATABASE_URL" = "Server=tcp:${azurerm_mssql_server.main.fully_qualified_domain_name},1433;Database=soundlog;User ID=sqladmin;Password=${var.sql_admin_password};Encrypt=true;Connection Timeout=30;"
+  }
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
 }
