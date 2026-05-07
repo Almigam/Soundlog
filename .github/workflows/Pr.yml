@@ -8,6 +8,8 @@ on:
   pull_request:
     branches: [desarrollo, main]
 
+  workflow_dispatch:
+
 jobs:
 
   # ──────────────── FRONTEND ────────────────

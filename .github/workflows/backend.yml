@@ -62,32 +62,33 @@ jobs:
   # DESCOMENTA ESTE JOB cuando tengas el App Service desplegado con Terraform
   # y hayas descargado el Publish Profile desde Azure Portal y lo hayas
   # añadido como secret AZURE_WEBAPP_PUBLISH_PROFILE en GitHub.
-  #
-  # deploy:
-  #   name: Deploy a Azure App Service
-  #   runs-on: ubuntu-latest
-  #   needs: test           # Solo despliega si los tests pasan
-  #   environment: develop  # Protección de entorno en GitHub
-  #
-  #   steps:
-  #     - name: Checkout código
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Setup Python 3.11
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.11"
-  #
-  #     - name: Instalar dependencias
-  #       working-directory: backend
-  #       run: pip install -r requirements.txt
-  #
-  #     - name: Deploy a Azure App Service
-  #       uses: azure/webapps-deploy@v3
-  #       with:
-  #         app-name: "soundlog-api-dev"    # Nombre de tu App Service en Azure
-  #         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-  #         package: backend/
-  #
-  #     - name: ✅ Deploy completado
-  #       run: echo "Backend desplegado en App Service"
+
+  deploy:
+    
+    name: Deploy a Azure App Service
+    runs-on: ubuntu-latest
+    needs: test           # Solo despliega si los tests pasan
+    environment: desarrollo  # Protección de entorno en GitHub
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Deploy a Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "soundlog-backend"    # Nombre de tu App Service en Azure
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: backend/
+
+      - name: ✅ Deploy completado
+        run: echo "Backend desplegado en App Service"
