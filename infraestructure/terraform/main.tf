@@ -109,7 +109,7 @@ resource "azurerm_mssql_firewall_rule" "azure_services" {
 resource "azurerm_mssql_database" "main" {
   name      = "soundlog"
   server_id = azurerm_mssql_server.main.id
-  sku_name  = "Basic"  # ~5€/mes, suficiente para desarrollo universitario
+  sku_name  = "Basic"  # ~5€/mes
 
   tags = {
     project    = "soundlog"
@@ -196,12 +196,16 @@ resource "azurerm_key_vault_access_policy" "terraform" {
 }
 
 # Permiso 2 — El App Service (Managed Identity) puede leer secretos
+# depends_on es necesario porque la identity se crea en este mismo apply
+# y Terraform necesita que el App Service esté creado antes de leer su principal_id
 resource "azurerm_key_vault_access_policy" "app_service" {
   key_vault_id = azurerm_key_vault.main.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = azurerm_linux_web_app.backend.identity[0].principal_id
 
   secret_permissions = ["Get", "List"]
+
+  depends_on = [azurerm_linux_web_app.backend]
 }
 
 # ──────────────────────────────────────────────
