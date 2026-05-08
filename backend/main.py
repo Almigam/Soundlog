@@ -1,19 +1,20 @@
 """
 Soundlog API — Backend principal con seguridad mejorada
 """
+
+from core.config import settings
+from core.logging_config import setup_logging
+from core.security_middleware import (
+    AuditLoggingMiddleware,
+    InputSanitizationMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from dotenv import load_dotenv
-from routes import auth, users, albums, songs, reviews
-from core.config import settings
-from core.security_middleware import (
-    SecurityHeadersMiddleware,
-    RateLimitMiddleware,
-    AuditLoggingMiddleware,
-    InputSanitizationMiddleware,
-)
-from core.logging_config import setup_logging
+from routes import albums, auth, reviews, songs, users
 
 # Cargar variables de ambiente
 load_dotenv()
@@ -70,10 +71,10 @@ app.add_middleware(AuditLoggingMiddleware)
 app.add_middleware(InputSanitizationMiddleware)
 
 # ──────────────────── ROUTERS ────────────────────
-app.include_router(auth.router)     # /api/v1/auth
-app.include_router(users.router)    # /api/v1/users
-app.include_router(albums.router)   # /api/v1/albums
-app.include_router(songs.router)    # /api/v1/songs
+app.include_router(auth.router)  # /api/v1/auth
+app.include_router(users.router)  # /api/v1/users
+app.include_router(albums.router)  # /api/v1/albums
+app.include_router(songs.router)  # /api/v1/songs
 app.include_router(reviews.router)  # /api/v1/reviews
 
 
@@ -93,6 +94,7 @@ async def root():
 async def health_check():
     """Health check para Azure App Service"""
     import datetime
+
     return {
         "status": "healthy",
         "timestamp": datetime.datetime.utcnow().isoformat(),
@@ -103,10 +105,12 @@ async def health_check():
 async def readiness_check():
     """Readiness probe — verifica conexión a la BD"""
     import logging
+
     log = logging.getLogger(__name__)
     try:
         from core.database import SessionLocal
         from sqlalchemy import text
+
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db.close()
@@ -120,9 +124,13 @@ async def readiness_check():
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """Captura excepciones no manejadas"""
-    import logging, uuid
-    logging.getLogger(__name__).error(f"Unhandled exception: {exc}", exc_info=True)
+    import logging
+    import uuid
+
+    logging.getLogger(__name__).error(
+        f"Unhandled exception: {exc}", exc_info=True)
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         status_code=500,
         content={
@@ -135,6 +143,7 @@ async def general_exception_handler(request, exc):
 # ──────────────────── ENTRY POINT ────────────────────
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

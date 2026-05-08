@@ -1,14 +1,17 @@
 """
 Esquemas Pydantic para validación mejorados
 """
-from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional
+
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
 
 
 # ──────────────────── AUTH ────────────────────
 class UserBase(BaseModel):
     """Schema base para usuario"""
+
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=30)
     full_name: Optional[str] = Field(None, max_length=255)
@@ -16,34 +19,44 @@ class UserBase(BaseModel):
     @validator("username")
     def validate_username(cls, v):
         import re
+
         if not re.match(r"^[a-zA-Z0-9_-]+$", v):
-            raise ValueError("Username solo puede contener letras, números, guiones y guiones bajos")
+            raise ValueError(
+                "Username solo puede contener letras, números, guiones y guiones bajos"
+            )
         return v
 
 
 class UserCreate(UserBase):
     """Schema para crear usuario con validación de contraseña"""
+
     password: str = Field(..., min_length=8, max_length=128)
 
     @validator("password")
     def validate_password(cls, v):
         import re
+
         if not re.search(r"[A-Z]", v):
-            raise ValueError("La contraseña debe contener al menos una mayúscula")
+            raise ValueError(
+                "La contraseña debe contener al menos una mayúscula")
         if not re.search(r"\d", v):
             raise ValueError("La contraseña debe contener al menos un número")
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
-            raise ValueError("La contraseña debe contener al menos un carácter especial")
+            raise ValueError(
+                "La contraseña debe contener al menos un carácter especial"
+            )
         return v
 
 
 class UserUpdate(BaseModel):
     """Schema para actualizar usuario"""
+
     full_name: Optional[str] = Field(None, max_length=255)
 
 
 class UserResponse(UserBase):
     """Schema de respuesta para usuario (sin password)"""
+
     id: int
     is_active: bool
     created_at: datetime
@@ -54,6 +67,7 @@ class UserResponse(UserBase):
 
 class TokenResponse(BaseModel):
     """Schema de respuesta con tokens"""
+
     access_token: str
     refresh_token: Optional[str] = None
     token_type: str = "bearer"
@@ -71,7 +85,8 @@ class AlbumBase(BaseModel):
     @validator("description")
     def sanitize_description(cls, v):
         if v:
-            v = "".join(char for char in v if ord(char) >= 32 or char in "\n\t")
+            v = "".join(char for char in v if ord(
+                char) >= 32 or char in "\n\t")
         return v
 
 
@@ -131,13 +146,15 @@ class ReviewBase(BaseModel):
     def sanitize_comment(cls, v):
         if v:
             v = v.strip()
-            v = "".join(char for char in v if ord(char) >= 32 or char in "\n\t")
+            v = "".join(char for char in v if ord(
+                char) >= 32 or char in "\n\t")
             v = v[:1000]
         return v
 
 
 class ReviewCreate(ReviewBase):
     """Schema para crear reseña — exactamente uno de album_id o song_id es obligatorio"""
+
     album_id: Optional[int] = None
     song_id: Optional[int] = None
 

@@ -1,11 +1,13 @@
 """
 Configuración mejorada con validaciones de seguridad
 """
-from pydantic_settings import BaseSettings
-from pydantic import Field, validator
-from typing import List
+
 import os
 import secrets
+from typing import List
+
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -18,7 +20,8 @@ class Settings(BaseSettings):
 
     # ─────────────────── SECURITY ───────────────────
     secret_key: str = Field(
-        default_factory=lambda: os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
+        default_factory=lambda: os.getenv(
+            "SECRET_KEY") or secrets.token_urlsafe(32)
     )
     algorithm: str = Field(default="HS256")
     access_token_expire_minutes: int = Field(default=30, ge=1, le=1440)
@@ -44,10 +47,10 @@ class Settings(BaseSettings):
 
     # ─────────────────── CORS ───────────────────
     allowed_origins: str = Field(
-        default="http://localhost:3000,http://localhost:5173"
-    )
+        default="http://localhost:3000,http://localhost:5173")
     allow_credentials: bool = Field(default=True)
-    allow_methods: List[str] = Field(default=["GET", "POST", "PUT", "DELETE", "PATCH"])
+    allow_methods: List[str] = Field(
+        default=["GET", "POST", "PUT", "DELETE", "PATCH"])
     allow_headers: List[str] = Field(default=["*"])
 
     # ─────────────────── LOGGING ───────────────────
@@ -80,7 +83,7 @@ class Settings(BaseSettings):
             if os.getenv("ENVIRONMENT") == "production":
                 raise ValueError(
                     "SECRET_KEY debe ser una cadena fuerte en producción. "
-                    "Genera una con: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                    'Genera una con: python -c "import secrets; print(secrets.token_urlsafe(32))"'
                 )
             return secrets.token_urlsafe(32)
         if len(v) < 32:
@@ -99,7 +102,8 @@ class Settings(BaseSettings):
             origins = [o.strip() for o in v.split(",")]
             if os.getenv("ENVIRONMENT") == "production":
                 if any("localhost" in o or "127.0.0.1" in o for o in origins):
-                    raise ValueError("No se pueden permitir localhost en producción")
+                    raise ValueError(
+                        "No se pueden permitir localhost en producción")
             return ",".join(origins)
         return v
 
