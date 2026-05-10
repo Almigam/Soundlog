@@ -109,7 +109,7 @@ resource "azurerm_mssql_firewall_rule" "azure_services" {
 resource "azurerm_mssql_database" "main" {
   name      = "soundlog"
   server_id = azurerm_mssql_server.main.id
-  sku_name  = "Basic"  # ~5€/mes
+  sku_name  = "Basic"  # ~5€/mes, suficiente para desarrollo universitario
 
   tags = {
     project    = "soundlog"
@@ -196,8 +196,8 @@ resource "azurerm_key_vault_access_policy" "terraform" {
 }
 
 # Permiso 2 — El App Service (Managed Identity) puede leer secretos
-# depends_on es necesario porque la identity se crea en este mismo apply
-# y Terraform necesita que el App Service esté creado antes de leer su principal_id
+# NOTA: Este recurso solo funciona tras el primer apply que añade la identity
+# al App Service. Ver instrucciones de despliegue en README.
 resource "azurerm_key_vault_access_policy" "app_service" {
   key_vault_id = azurerm_key_vault.main.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
@@ -253,4 +253,16 @@ resource "azurerm_key_vault_secret" "storage_key" {
     project    = "soundlog"
     managed_by = "terraform"
   }
+}
+
+# ──────────────────────────────────────────────
+#  PERMISOS — Managed Identity → Blob Storage
+# ──────────────────────────────────────────────
+
+# La Managed Identity de GitHub Actions necesita poder
+# subir archivos al Blob Storage del frontend
+resource "azurerm_role_assignment" "github_storage_frontend" {
+  scope                = azurerm_storage_account.frontend.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.github_managed_identity_principal_id
 }
