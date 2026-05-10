@@ -32,9 +32,9 @@ export function AlbumDetail() {
       setAlbum(albumRes.data);
       setSongs(songsRes.data);
       setReviews(reviewsRes.data);
-    } catch (err) {
+    } catch {
+      // error eliminado — variable no usada
       setError('Error al cargar los datos del álbum');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export function AlbumDetail() {
       await reviewsAPI.create(newReview.rating, parseInt(id!), undefined, newReview.comment);
       setNewReview({ rating: 5, comment: '' });
       loadData();
-    } catch (err) {
+    } catch {
       setError('Error al enviar la reseña');
     } finally {
       setSubmitting(false);
@@ -89,7 +89,9 @@ export function AlbumDetail() {
           <div className="album-stats">
             <span>{reviews.length} reseñas</span>
             {reviews.length > 0 && (
-              <span>Promedio: {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)} ⭐</span>
+              <span>
+                Promedio: {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)} ⭐
+              </span>
             )}
           </div>
         </div>
@@ -118,6 +120,8 @@ export function AlbumDetail() {
 
       <section className="reviews-section">
         <h2>Reseñas</h2>
+
+        {error && <div className="error-message">{error}</div>}
 
         {isAuthenticated && (
           <form className="review-form" onSubmit={handleSubmitReview}>
