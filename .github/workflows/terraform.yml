@@ -5,7 +5,7 @@ name: Terraform
 
 on:
   push:
-    branches: [desarrollo, main]
+    branches: [desarrollo]
     paths:
       - "infraestructure/terraform/**"
       - ".github/workflows/terraform.yml"
@@ -72,6 +72,7 @@ jobs:
           terraform plan \
             -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
             -var="jwt_secret_key=${{ secrets.JWT_SECRET_KEY }}" \
+            -var="github_managed_identity_principal_id=${{ secrets.AZURE_MI_PRINCIPAL_ID }}" \
             -no-color \
             -out=tfplan \
             2>&1 | tee plan_output.txt
@@ -152,5 +153,6 @@ jobs:
           terraform apply \
             -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
             -var="jwt_secret_key=${{ secrets.JWT_SECRET_KEY }}" \
+            -var="github_managed_identity_principal_id=${{ secrets.AZURE_MI_PRINCIPAL_ID }}" \
             -auto-approve \
             -no-color
