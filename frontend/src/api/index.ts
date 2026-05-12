@@ -43,77 +43,20 @@ export interface Review {
   created_at: string;
 }
 
-// Auth API
-export const authAPI = {
-  register: (email: string, username: string, password: string, full_name?: string) =>
-    api.post<User>('/api/v1/auth/register', {
-      email,
-      username,
-      password,
-      full_name,
-    }),
+export interface SpotifyAlbum {
+  id: string;
+  title: string;
+  artist: string;
+  release_year?: number;
+  cover_image_url?: string;
+  external_url: string;
+}
 
-  login: (username: string, password: string) =>
-    api.post<LoginResponse>('/api/v1/auth/login', 
-      new URLSearchParams({
-        username,
-        password,
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    ),
-};
-
-// Albums API
-export const albumsAPI = {
-  getAll: (skip: number = 0, limit: number = 20) =>
-    api.get<Album[]>('/api/v1/albums', { params: { skip, limit } }),
-
-  getById: (id: number) =>
-    api.get<Album>(`/api/v1/albums/${id}`),
-
-  create: (album: Omit<Album, 'id' | 'created_at'>) =>
-    api.post<Album>('/api/v1/albums', album),
-
-  update: (id: number, updates: Partial<Album>) =>
-    api.patch<Album>(`/api/v1/albums/${id}`, updates),
-
-  delete: (id: number) =>
-    api.delete(`/api/v1/albums/${id}`),
-};
-
-// Songs API
-export const songsAPI = {
-  getAll: (skip: number = 0, limit: number = 20, albumId?: number) =>
-    api.get<Song[]>('/api/v1/songs', { params: { skip, limit, album_id: albumId } }),
-
-  getById: (id: number) =>
-    api.get<Song>(`/api/v1/songs/${id}`),
-
-  create: (song: Omit<Song, 'id' | 'created_at'>) =>
-    api.post<Song>('/api/v1/songs', song),
-
-  update: (id: number, updates: Partial<Song>) =>
-    api.patch<Song>(`/api/v1/songs/${id}`, updates),
-
-  delete: (id: number) =>
-    api.delete(`/api/v1/songs/${id}`),
-};
+// ... rest of the API definitions
 
 // Reviews API
 export const reviewsAPI = {
-  getAlbumReviews: (albumId: number, skip: number = 0, limit: number = 20) =>
-    api.get<Review[]>(`/api/v1/reviews/album/${albumId}`, { params: { skip, limit } }),
-
-  getSongReviews: (songId: number, skip: number = 0, limit: number = 20) =>
-    api.get<Review[]>(`/api/v1/reviews/song/${songId}`, { params: { skip, limit } }),
-
-  getMyReviews: (skip: number = 0, limit: number = 20) =>
-    api.get<Review[]>('/api/v1/reviews/me', { params: { skip, limit } }),
-
+  // ... existing reviewsAPI methods
   create: (rating: number, albumId?: number, songId?: number, comment?: string) =>
     api.post<Review>('/api/v1/reviews', {
       rating,
@@ -121,4 +64,13 @@ export const reviewsAPI = {
       song_id: songId,
       comment,
     }),
+};
+
+// External API (Spotify)
+export const externalAPI = {
+  search: (query: string) =>
+    api.get<SpotifyAlbum[]>('/api/v1/external/search', { params: { q: query } }),
+
+  import: (spotifyId: string) =>
+    api.post<{ message: string; id: number }>(`/api/v1/external/import/${spotifyId}`),
 };

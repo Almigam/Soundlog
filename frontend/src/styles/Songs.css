@@ -1,33 +1,14 @@
-.songs-container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
-}
-
-.songs-header {
+.songs-header-simple {
   margin-bottom: 2rem;
-}
-
-.songs-header h1 {
-  font-family: 'DM Serif Display', serif;
-  font-size: 2.2rem;
-  font-weight: 400;
-  color: #fff;
-  margin-bottom: 0.3rem;
-}
-
-.songs-header p {
-  color: var(--text-dim);
-  font-size: 0.95rem;
 }
 
 /* ── Table ────────────────────────────────────── */
 .songs-table {
   width: 100%;
-  margin-bottom: 2rem;
-  border: 1px solid var(--border);
+  margin-bottom: 3rem;
   border-radius: var(--radius);
   overflow: hidden;
+  border: 1px solid var(--border);
 }
 
 .songs-table table {
@@ -36,106 +17,62 @@
   background-color: var(--bg-card);
 }
 
-.songs-table thead {
-  border-bottom: 1px solid var(--border);
-}
-
 .songs-table th {
-  padding: 0.85rem 1.25rem;
+  padding: 1rem 1.5rem;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border);
 }
 
 .songs-table td {
-  padding: 0.85rem 1.25rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--border);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--text-muted);
-  transition: color 0.15s;
-}
-
-.songs-table td:first-child {
-  color: var(--text);
-  font-weight: 500;
 }
 
 .songs-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.songs-table tbody tr {
-  transition: background 0.15s;
-}
-
 .songs-table tbody tr:hover {
   background: var(--bg-hover);
 }
 
-.songs-table tbody tr:hover td {
-  color: var(--text);
-}
-
-/* Row number column */
-.songs-table td.row-num,
-.songs-table th.row-num {
-  color: var(--text-dim);
-  width: 40px;
-  text-align: right;
-  padding-right: 0.5rem;
-  font-size: 0.8rem;
-}
-
-/* Duration */
-.songs-table td.duration {
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  font-family: monospace;
-  text-align: right;
-  width: 80px;
+.songs-table td:first-child {
+  color: #fff;
+  font-weight: 500;
 }
 
 /* ── Pagination ───────────────────────────────── */
 .pagination {
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
 .pagination-btn {
   background-color: var(--bg-card);
   color: var(--text-muted);
   border: 1px solid var(--border);
-  padding: 9px 20px;
+  padding: 10px 24px;
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 0.88rem;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
 .pagination-btn:hover:not(:disabled) {
   border-color: var(--orange);
-  color: var(--orange);
-  background: var(--orange-subtle);
+  color: #fff;
+  background: var(--bg-hover);
 }
 
 .pagination-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-  .songs-header h1 {
-    font-size: 1.75rem;
-  }
-
-  .songs-table th,
-  .songs-table td {
-    padding: 0.75rem 0.9rem;
-    font-size: 0.85rem;
-  }
 }

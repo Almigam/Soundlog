@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Album, albumsAPI } from '../api';
+import { AlbumCard } from '../components/AlbumCard';
 import '../styles/Albums.css';
 
 export function AlbumsList() {
@@ -16,7 +16,7 @@ export function AlbumsList() {
   const loadAlbums = async () => {
     try {
       setLoading(true);
-      const response = await albumsAPI.getAll(skip, 12);
+      const response = await albumsAPI.getAll(skip, 18);
       setAlbums(response.data);
     } catch (err: any) {
       setError('Error al cargar álbumes');
@@ -27,11 +27,15 @@ export function AlbumsList() {
   };
 
   return (
-    <div className="albums-container">
-      <div className="albums-header">
-        <h1>Álbumes</h1>
-        <p>Descubre y reseña tus álbumes favoritos</p>
-      </div>
+    <div className="container" style={{ paddingTop: '3rem', paddingBottom: '5rem' }}>
+      <header className="albums-header-simple">
+        <h1 className="section-title">
+          Explorar Álbumes
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
+            Mostrando {skip + 1}-{skip + albums.length}
+          </span>
+        </h1>
+      </header>
 
       {error && <div className="error-message">{error}</div>}
 
@@ -39,40 +43,29 @@ export function AlbumsList() {
         <div className="loading">Cargando álbumes...</div>
       ) : (
         <>
-          <div className="albums-grid">
+          <div className="poster-grid">
             {albums.map((album) => (
-              <Link key={album.id} to={`/albums/${album.id}`} className="album-card">
-                <div className="album-cover">
-                  {album.cover_image_url ? (
-                    <img src={album.cover_image_url} alt={album.title} />
-                  ) : (
-                    <div className="placeholder">
-                      <span>♪</span>
-                    </div>
-                  )}
-                </div>
-                <div className="album-info">
-                  <h3>{album.title}</h3>
-                  <p className="artist">{album.artist}</p>
-                  {album.release_year && (
-                    <p className="year">{album.release_year}</p>
-                  )}
-                </div>
-              </Link>
+              <AlbumCard key={album.id} album={album} />
             ))}
           </div>
 
           <div className="pagination">
             <button
               disabled={skip === 0}
-              onClick={() => setSkip(Math.max(0, skip - 12))}
+              onClick={() => {
+                setSkip(Math.max(0, skip - 18));
+                window.scrollTo(0, 0);
+              }}
               className="pagination-btn"
             >
               ← Anterior
             </button>
             <button
-              disabled={albums.length < 12}
-              onClick={() => setSkip(skip + 12)}
+              disabled={albums.length < 18}
+              onClick={() => {
+                setSkip(skip + 18);
+                window.scrollTo(0, 0);
+              }}
               className="pagination-btn"
             >
               Siguiente →

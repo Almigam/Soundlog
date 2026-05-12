@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Album, Song, Review, albumsAPI, songsAPI, reviewsAPI } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/AlbumDetail.css';
@@ -33,7 +33,6 @@ export function AlbumDetail() {
       setSongs(songsRes.data);
       setReviews(reviewsRes.data);
     } catch {
-      // error eliminado — variable no usada
       setError('Error al cargar los datos del álbum');
     } finally {
       setLoading(false);
@@ -59,56 +58,47 @@ export function AlbumDetail() {
     }
   };
 
-  if (loading) {
-    return <div className="loading">Cargando...</div>;
-  }
+  if (loading) return <div className="loading">Cargando...</div>;
+  if (!album) return <div className="container"><div className="error-message">Álbum no encontrado</div></div>;
 
-  if (!album) {
-    return <div className="error-message">Álbum no encontrado</div>;
-  }
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : 'N/A';
 
   return (
     <div className="album-detail-container">
-      <div className="album-detail-header">
+      <aside className="album-aside-left">
         <div className="album-cover-large">
           {album.cover_image_url ? (
             <img src={album.cover_image_url} alt={album.title} />
           ) : (
-            <div className="placeholder-large">♪</div>
+            <div className="placeholder-large" style={{height:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-elevated)', fontSize:'4rem'}}>♪</div>
           )}
         </div>
-        <div className="album-detail-info">
-          <h1>{album.title}</h1>
-          <p className="detail-artist">{album.artist}</p>
-          {album.release_year && (
-            <p className="detail-year">Año: {album.release_year}</p>
-          )}
-          {album.description && (
-            <p className="detail-description">{album.description}</p>
-          )}
-          <div className="album-stats">
-            <span>{reviews.length} reseñas</span>
-            {reviews.length > 0 && (
-              <span>
-                Promedio: {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)} ⭐
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      </aside>
 
-      {songs.length > 0 && (
+      <main className="album-main-content">
+        <section className="album-title-section">
+          <h1>{album.title}</h1>
+          <p className="artist-year">
+            <span className="artist-name" style={{color: '#fff', fontWeight: 600}}>{album.artist}</span>
+            {album.release_year && <span> • {album.release_year}</span>}
+          </p>
+        </section>
+
+        {album.description && (
+          <p className="album-description">{album.description}</p>
+        )}
+
         <section className="songs-section">
-          <h2>Canciones ({songs.length})</h2>
+          <h2 className="section-title">Canciones</h2>
           <div className="songs-list">
-            {songs.map((song) => (
-              <div key={song.id} className="song-item">
-                <div className="song-info">
-                  <p className="song-title">{song.title}</p>
-                  <p className="song-artist">{song.artist}</p>
-                </div>
+            {songs.map((song, index) => (
+              <div key={song.id} className="song-row">
+                <span className="song-num">{index + 1}</span>
+                <span className="song-name">{song.title}</span>
                 {song.duration && (
-                  <span className="song-duration">
+                  <span className="song-time">
                     {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
                   </span>
                 )}
@@ -116,70 +106,67 @@ export function AlbumDetail() {
             ))}
           </div>
         </section>
-      )}
 
-      <section className="reviews-section">
-        <h2>Reseñas</h2>
+        <section className="reviews-section" style={{marginTop: '4rem'}}>
+          <h2 className="section-title">Reseñas de la comunidad</h2>
+          <div className="reviews-list">
+            {reviews.length > 0 ? (
+              reviews.map((review) => (
+                <div key={review.id} className="review-item" style={{marginBottom: '1rem', background:'var(--bg-card)', padding:'1.5rem', borderRadius:'var(--radius)'}}>
+                  <div className="review-header">
+                    <span className="review-rating" style={{color:'var(--green)', fontWeight:700}}>{review.rating} ★</span>
+                    <span className="review-date">{new Date(review.created_at).toLocaleDateString()}</span>
+                  </div>
+                  {review.comment && <p className="review-comment" style={{marginTop:'0.5rem'}}>{review.comment}</p>}
+                </div>
+              ))
+            ) : (
+              <p className="no-reviews">Aún no hay reseñas. ¡Sé el primero!</p>
+            )}
+          </div>
+        </section>
+      </main>
 
-        {error && <div className="error-message">{error}</div>}
+      <aside className="album-aside-right">
+        <div className="action-header">Tu Actividad</div>
+        <div className="stats-grid">
+          <div className="stat-box">
+            <span className="stat-value">{averageRating}</span>
+            <span className="stat-label">Rating</span>
+          </div>
+          <div className="stat-box">
+            <span className="stat-value">{reviews.length}</span>
+            <span className="stat-label">Reseñas</span>
+          </div>
+        </div>
 
-        {isAuthenticated && (
-          <form className="review-form" onSubmit={handleSubmitReview}>
-            <h3>Escribe una reseña</h3>
-            <div className="form-group">
-              <label htmlFor="rating">Calificación (1-5)</label>
-              <select
-                id="rating"
-                value={newReview.rating}
-                onChange={(e) =>
-                  setNewReview({ ...newReview, rating: parseFloat(e.target.value) })
-                }
-              >
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n} ⭐
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="comment">Comentario</label>
-              <textarea
-                id="comment"
-                value={newReview.comment}
-                onChange={(e) =>
-                  setNewReview({ ...newReview, comment: e.target.value })
-                }
-                placeholder="¿Qué te pareció este álbum?"
-                rows={4}
-              />
-            </div>
-            <button type="submit" disabled={submitting} className="submit-btn">
-              {submitting ? 'Enviando...' : 'Enviar reseña'}
+        {isAuthenticated ? (
+          <form className="mini-review-form" onSubmit={handleSubmitReview}>
+            <div className="action-header" style={{border:'none', marginTop:'1.5rem', marginBottom:'0.5rem'}}>Calificar</div>
+            <select
+              value={newReview.rating}
+              onChange={(e) => setNewReview({ ...newReview, rating: parseFloat(e.target.value) })}
+            >
+              {[5, 4, 3, 2, 1].map((n) => (
+                <option key={n} value={n}>{n} Estrellas</option>
+              ))}
+            </select>
+            <textarea
+              value={newReview.comment}
+              onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+              placeholder="¿Qué te pareció?"
+            />
+            <button type="submit" disabled={submitting} className="btn-primary" style={{width:'100%'}}>
+              {submitting ? 'Enviando...' : 'Log Album'}
             </button>
           </form>
+        ) : (
+          <div style={{textAlign:'center', marginTop:'1rem'}}>
+            <p style={{fontSize:'0.85rem', color:'var(--text-dim)', marginBottom:'1rem'}}>Inicia sesión para calificar este álbum.</p>
+            <Link to="/login" className="btn-primary" style={{width:'100%', textAlign:'center'}}>Iniciar Sesión</Link>
+          </div>
         )}
-
-        <div className="reviews-list">
-          {reviews.length > 0 ? (
-            reviews.map((review) => (
-              <div key={review.id} className="review-item">
-                <div className="review-header">
-                  <span className="review-rating">{review.rating} ⭐</span>
-                  <span className="review-date">
-                    {new Date(review.created_at).toLocaleDateString('es-ES')}
-                  </span>
-                </div>
-                {review.comment && (
-                  <p className="review-comment">{review.comment}</p>
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="no-reviews">Sin reseñas aún. ¡Sé el primero en reseñar!</p>
-          )}
-        </div>
-      </section>
+      </aside>
     </div>
   );
 }
