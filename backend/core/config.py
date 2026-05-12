@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     storage_account_name: str = Field(default="")
     storage_account_key: str = Field(default="")
 
+    # ─────────────────── SPOTIFY ───────────────────
+    spotify_client_id: str = Field(default="")
+    spotify_client_secret: str = Field(default="")
+
     # ─────────────────── HEADERS SEGURIDAD ───────────────────
     enable_hsts: bool = Field(default=True)
     hsts_max_age: int = Field(default=31536000)

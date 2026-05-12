@@ -18,3 +18,16 @@ variable "github_managed_identity_principal_id" {
   type        = string
   description = "Principal ID de la Managed Identity usada por GitHub Actions"
 }
+
+variable "spotify_client_id" {
+  type        = string
+  description = "Client ID de la API de Spotify"
+  default     = ""
+}
+
+variable "spotify_client_secret" {
+  type        = string
+  description = "Client Secret de la API de Spotify"
+  sensitive   = true
+  default     = ""
+}

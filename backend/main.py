@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from routes import albums, auth, reviews, songs, users
+from routes import albums, auth, reviews, songs, users, external
 
 # Cargar variables de ambiente
 load_dotenv()
@@ -76,6 +76,7 @@ app.include_router(users.router)  # /api/v1/users
 app.include_router(albums.router)  # /api/v1/albums
 app.include_router(songs.router)  # /api/v1/songs
 app.include_router(reviews.router)  # /api/v1/reviews
+app.include_router(external.router)  # /api/v1/external
 
 
 # ──────────────────── HEALTH CHECKS ────────────────────

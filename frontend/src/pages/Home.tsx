@@ -1,87 +1,90 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { Album, albumsAPI } from '../api';
+import { AlbumCard } from '../components/AlbumCard';
 import '../styles/Home.css';
 
 export function Home() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const [popularAlbums, setPopularAlbums] = useState<Album[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        const response = await albumsAPI.getAll(0, 6);
+        setPopularAlbums(response.data);
+      } catch (error) {
+        console.error("Error fetching home data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHomeData();
+  }, []);
 
   return (
     <div className="home-container">
-      <section className="hero">
-        <div className="hero-content">
-          <h1>Soundlog</h1>
-          <p className="tagline">Descubre, reseña y comparte tu pasión por la música</p>
-          <p className="description">
-            Encuentra álbumes, explora canciones y lee reseñas de otros usuarios.
-            Comparte tus opiniones sobre tu música favorita.
-          </p>
-          <div className="hero-buttons">
-            {!isAuthenticated ? (
-              <>
-                <Link to="/login" className="btn btn-primary">
-                  Iniciar sesión
-                </Link>
-                <Link to="/register" className="btn btn-secondary">
-                  Registrarse
-                </Link>
-              </>
-            ) : (
-              <>
-                <p className="welcome">¡Bienvenido, {user?.username}!</p>
-                <Link to="/albums" className="btn btn-primary">
-                  Explorar álbumes
-                </Link>
-              </>
+      <section className="hero-simple">
+        <div className="container">
+          <div className="hero-inner">
+            <h1>Descubre tu próxima obsesión musical.</h1>
+            <p className="hero-lead">
+              La red social para amantes de la música. Reseña álbumes, 
+              sigue a tus artistas favoritos y comparte tus listas.
+            </p>
+            {!isAuthenticated && (
+              <div className="hero-actions">
+                <Link to="/register" className="btn-primary">Crear cuenta gratis</Link>
+                <Link to="/login" className="btn-secondary-alt">Iniciar sesión</Link>
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      <section className="features">
-        <h2>Características</h2>
-        <div className="features-grid">
-          <div className="feature">
-            <div className="feature-icon">📚</div>
-            <h3>Catálogo completo</h3>
-            <p>Accede a miles de álbumes y canciones</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">⭐</div>
-            <h3>Reseña y valora</h3>
-            <p>Comparte tus opiniones con calificaciones</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">👥</div>
-            <h3>Comunidad</h3>
-            <p>Lee reseñas de otros usuarios apasionados</p>
-          </div>
-          <div className="feature">
-            <div className="feature-icon">🔒</div>
-            <h3>Seguro y privado</h3>
-            <p>Gestiona tu perfil de forma segura</p>
-          </div>
+      <section className="trending-section">
+        <div className="container">
+          <h2 className="section-title">
+            Álbumes populares esta semana
+            <Link to="/albums" className="view-more">Ver todo</Link>
+          </h2>
+          
+          {loading ? (
+            <div className="loading">Cargando...</div>
+          ) : (
+            <div className="poster-grid">
+              {popularAlbums.map(album => (
+                <AlbumCard key={album.id} album={album} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {isAuthenticated && (
-        <section className="quick-links">
-          <h2>Empieza aquí</h2>
-          <div className="links-grid">
-            <Link to="/albums" className="quick-link">
-              <span className="icon">📀</span>
-              <span>Explorar álbumes</span>
-            </Link>
-            <Link to="/songs" className="quick-link">
-              <span className="icon">🎵</span>
-              <span>Ver todas las canciones</span>
-            </Link>
-            <Link to="/profile" className="quick-link">
-              <span className="icon">👤</span>
-              <span>Mi perfil</span>
-            </Link>
+      <section className="how-it-works">
+        <div className="container">
+          <h2 className="section-title">Comparte tu pasión</h2>
+          <div className="features-grid-refined">
+            <div className="feature-item">
+              <span className="feature-icon">🎧</span>
+              <h3>Lleva un registro</h3>
+              <p>Guarda cada álbum que escuches y mantén tu historial al día.</p>
+            </div>
+            <div className="feature-item">
+              <span className="feature-icon">⭐</span>
+              <h3>Escribe reseñas</h3>
+              <p>Comparte tus opiniones y puntúa tus lanzamientos favoritos.</p>
+            </div>
+            <div className="feature-item">
+              <span className="feature-icon">📂</span>
+              <h3>Crea listas</h3>
+              <p>Organiza tu música por géneros, estados de ánimo o épocas.</p>
+            </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
     </div>
   );
 }

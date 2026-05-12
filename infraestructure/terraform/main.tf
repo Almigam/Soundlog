@@ -35,7 +35,7 @@ resource "azurerm_storage_account" "frontend" {
 
   static_website {
     index_document     = "index.html"
-    error_404_document = "404.html"
+    error_404_document = "index.html"
   }
 
   tags = {
@@ -253,6 +253,23 @@ resource "azurerm_key_vault_secret" "storage_key" {
     project    = "soundlog"
     managed_by = "terraform"
   }
+}
+
+# 🎵 Spotify API Secrets
+resource "azurerm_key_vault_secret" "spotify_id" {
+  name         = "SPOTIFY-CLIENT-ID"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = var.spotify_client_id
+
+  depends_on = [azurerm_key_vault_access_policy.terraform]
+}
+
+resource "azurerm_key_vault_secret" "spotify_secret" {
+  name         = "SPOTIFY-CLIENT-SECRET"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = var.spotify_client_secret
+
+  depends_on = [azurerm_key_vault_access_policy.terraform]
 }
 
 # ──────────────────────────────────────────────
