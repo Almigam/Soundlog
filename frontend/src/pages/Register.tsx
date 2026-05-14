@@ -9,6 +9,7 @@ export function Register() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -52,8 +53,13 @@ export function Register() {
       loginParams.append('password', formData.password);
       
       const loginResponse = await authAPI.login(loginParams as any);
-      login(response.data, loginResponse.data.access_token);
-      navigate('/');
+      
+      setSuccess('¡Registro exitoso! Iniciando sesión...');
+      
+      setTimeout(() => {
+        login(response.data, loginResponse.data.access_token);
+        navigate('/');
+      }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al registrarse');
     } finally {
@@ -66,6 +72,7 @@ export function Register() {
       <div className="auth-card">
         <h1>Registro</h1>
         {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message" style={{color: '#4caf50', background: 'rgba(76, 175, 80, 0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center'}}>{success}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
