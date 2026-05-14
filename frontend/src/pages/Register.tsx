@@ -40,14 +40,18 @@ export function Register() {
 
     setLoading(true);
     try {
-      const response = await authAPI.register(
-        formData.email,
-        formData.username,
-        formData.password,
-        formData.full_name
-      );
+      const response = await authAPI.register({
+        email: formData.email,
+        username: formData.username,
+        password: formData.password,
+        full_name: formData.full_name
+      });
 
-      const loginResponse = await authAPI.login(formData.username, formData.password);
+      const loginParams = new URLSearchParams();
+      loginParams.append('username', formData.username);
+      loginParams.append('password', formData.password);
+      
+      const loginResponse = await authAPI.login(loginParams as any);
       login(response.data, loginResponse.data.access_token);
       navigate('/');
     } catch (err: any) {
