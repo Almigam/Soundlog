@@ -4,9 +4,11 @@ import sys
 # Añadir el directorio actual al path para poder importar core
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# flake8: noqa: E402
 from core.database import SessionLocal
 from core.models import User
 from core.security import get_password_hash
+
 
 def seed():
     db = SessionLocal()
@@ -27,7 +29,7 @@ def seed():
             print("✅ Usuario admin creado con éxito.")
         else:
             print("ℹ️ El usuario admin ya existe.")
-            
+
         # Otro usuario de prueba más simple
         test_user = db.query(User).filter(User.username == "test").first()
         if not test_user:
@@ -44,12 +46,13 @@ def seed():
             print("✅ Usuario test creado con éxito.")
         else:
             print("ℹ️ El usuario test ya existe.")
-            
+
     except Exception as e:
         print(f"❌ Error al crear usuarios: {e}")
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed()
