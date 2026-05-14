@@ -16,12 +16,13 @@ def seed():
         # Verificar si el usuario ya existe
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
-            print("Creando usuario por defecto: admin / Soundlog2024!")
+            print("Creando usuario por defecto: admin / Soundlog24!")
+            # Usamos una contraseña un poco más corta para evitar problemas de bytes
             new_user = User(
                 username="admin",
                 email="admin@example.com",
-                full_name="Administrador de Pruebas",
-                hashed_password=get_password_hash("Soundlog2024!"),
+                full_name="Administrador",
+                hashed_password=get_password_hash("Soundlog24!"),
                 is_active=True
             )
             db.add(new_user)
@@ -30,15 +31,15 @@ def seed():
         else:
             print("ℹ️ El usuario admin ya existe.")
 
-        # Otro usuario de prueba más simple
+        # Otro usuario de prueba
         test_user = db.query(User).filter(User.username == "test").first()
         if not test_user:
-            print("Creando usuario por defecto: test / TestPass123!")
+            print("Creando usuario por defecto: test / TestPass1!")
             new_user = User(
                 username="test",
                 email="test@example.com",
-                full_name="Usuario de Prueba",
-                hashed_password=get_password_hash("TestPass123!"),
+                full_name="Usuario Test",
+                hashed_password=get_password_hash("TestPass1!"),
                 is_active=True
             )
             db.add(new_user)
