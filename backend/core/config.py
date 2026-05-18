@@ -106,7 +106,7 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             origins = [o.strip() for o in v.split(",")]
             if os.getenv("ENVIRONMENT") == "production":
-                # Solo lanzamos error si NO hay Key Vault configurado. 
+                # Solo lanzamos error si NO hay Key Vault configurado.
                 # Si hay Key Vault, permitimos el arranque porque sabemos que se sobrescribirá.
                 if any("localhost" in o or "127.0.0.1" in o for o in origins):
                     if not os.getenv("KEYVAULT_URL"):
