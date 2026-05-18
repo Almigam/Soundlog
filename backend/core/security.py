@@ -6,6 +6,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
+import bcrypt
+
+# Monkeypatch para corregir incompatibilidad entre passlib y bcrypt 4.0+
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (object,), {"__version__": bcrypt.__version__})
+
 from core.config import settings
 from core.security_utils import password_validator
 from fastapi import Depends, HTTPException, status

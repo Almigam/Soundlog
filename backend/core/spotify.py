@@ -2,6 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from core.config import settings
 
+
 class SpotifyService:
     def __init__(self):
         self.sp = None
@@ -15,7 +16,7 @@ class SpotifyService:
     def search_albums(self, query: str, limit: int = 10):
         if not self.sp:
             return []
-        
+
         results = self.sp.search(q=query, limit=limit, type='album')
         albums = []
         for item in results['albums']['items']:
@@ -39,7 +40,7 @@ class SpotifyService:
     def get_album_details(self, spotify_id: str):
         if not self.sp:
             return None
-        
+
         album = self.sp.album(spotify_id)
         release_year = None
         if album.get('release_date'):
@@ -55,7 +56,7 @@ class SpotifyService:
                 "artist": track['artists'][0]['name'],
                 "duration": track['duration_ms'] // 1000
             })
-            
+
         return {
             "title": album['name'],
             "artist": album['artists'][0]['name'],
@@ -64,5 +65,6 @@ class SpotifyService:
             "cover_image_url": album['images'][0]['url'] if album['images'] else None,
             "tracks": tracks
         }
+
 
 spotify_service = SpotifyService()

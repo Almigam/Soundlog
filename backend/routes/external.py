@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 from core.spotify import spotify_service
 from core.security import get_current_user
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/external", tags=["external"])
 
+
 class SpotifyAlbumSearchResponse(BaseModel):
     id: str
     title: str
@@ -17,9 +18,10 @@ class SpotifyAlbumSearchResponse(BaseModel):
     cover_image_url: Optional[str]
     external_url: str
 
+
 @router.get("/search", response_model=List[SpotifyAlbumSearchResponse])
 async def search_spotify_albums(
-    q: str, 
+    q: str,
     current_user_id: int = Depends(get_current_user)
 ):
     """Buscar álbumes en Spotify"""
@@ -27,12 +29,13 @@ async def search_spotify_albums(
         results = spotify_service.search_albums(q)
         if not results and not spotify_service.sp:
             raise HTTPException(
-                status_code=503, 
+                status_code=503,
                 detail="Servicio de Spotify no configurado. Añade SPOTIFY_CLIENT_ID y SECRET."
             )
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/import/{spotify_id}")
 async def import_spotify_album(
@@ -76,7 +79,7 @@ async def import_spotify_album(
             duration=track['duration']
         )
         db.add(db_song)
-    
+
     db.commit()
 
     return {"message": "Álbum importado con éxito", "id": db_album.id}

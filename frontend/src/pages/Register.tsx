@@ -9,6 +9,7 @@ export function Register() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -33,23 +34,34 @@ export function Register() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    // Validación fuerte de contraseña (coincide con backend)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await authAPI.register(
-        formData.email,
-        formData.username,
-        formData.password,
-        formData.full_name
-      );
+      const response = await authAPI.register({
+        email: formData.email,
+        username: formData.username,
+        password: formData.password,
+        full_name: formData.full_name
+      });
 
-      const loginResponse = await authAPI.login(formData.username, formData.password);
-      login(response.data, loginResponse.data.access_token);
-      navigate('/');
+      const loginParams = new URLSearchParams();
+      loginParams.append('username', formData.username);
+      loginParams.append('password', formData.password);
+      
+      const loginResponse = await authAPI.login(loginParams as any);
+      
+      setSuccess('¡Registro exitoso! Iniciando sesión...');
+      
+      setTimeout(() => {
+        login(response.data, loginResponse.data.access_token);
+        navigate('/');
+      }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al registrarse');
     } finally {
@@ -62,6 +74,7 @@ export function Register() {
       <div className="auth-card">
         <h1>Registro</h1>
         {error && <div className="error-message">{error}</div>}
+        {success && <div className="success-message" style={{color: '#4caf50', background: 'rgba(76, 175, 80, 0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center'}}>{success}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
