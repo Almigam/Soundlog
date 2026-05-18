@@ -154,11 +154,10 @@ resource "azurerm_linux_web_app" "backend" {
   }
 
   app_settings = {
-    # Le decimos al backend dónde está el Key Vault
-    # Los secretos reales (DATABASE_URL, SECRET_KEY) los leerá de ahí
     "KEYVAULT_URL"             = azurerm_key_vault.main.vault_uri
     "ENVIRONMENT"              = "production"
     "WEBSITE_RUN_FROM_PACKAGE" = "1"
+    "WEBSITES_PORT"            = "8000"
   }
 
   tags = {
@@ -248,6 +247,21 @@ resource "azurerm_key_vault_secret" "storage_key" {
   name         = "STORAGE-ACCOUNT-KEY"
   key_vault_id = azurerm_key_vault.main.id
   value        = azurerm_storage_account.images.primary_access_key
+
+  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+# Orígenes permitidos (CORS) — dinámico desde el storage del frontend
+resource "azurerm_key_vault_secret" "allowed_origins" {
+  name         = "ALLOWED-ORIGINS"
+  key_vault_id = azurerm_key_vault.main.id
+  # Quitamos la barra final de la URL del storage para que coincida con el estándar de CORS
+  value        = trimsuffix(azurerm_storage_account.frontend.primary_web_endpoint, "/")
 
   depends_on = [azurerm_key_vault_access_policy.terraform_executor]
 
