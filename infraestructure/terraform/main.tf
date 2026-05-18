@@ -264,7 +264,21 @@ resource "azurerm_key_vault_secret" "storage_key" {
   }
 }
 
-# 🎵 Spotify API Secrets
+# Orígenes permitidos (CORS)
+resource "azurerm_key_vault_secret" "allowed_origins" {
+  name         = "ALLOWED-ORIGINS"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = trimsuffix(azurerm_storage_account.frontend.primary_web_endpoint, "/")
+
+  depends_on = [azurerm_key_vault_access_policy.terraform_local]
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+# Spotify API Secrets
 resource "azurerm_key_vault_secret" "spotify_id" {
   name         = "SPOTIFY-CLIENT-ID"
   key_vault_id = azurerm_key_vault.main.id

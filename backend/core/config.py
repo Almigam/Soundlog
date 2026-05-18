@@ -147,6 +147,7 @@ if settings.keyvault_url:
             "STORAGE-ACCOUNT-KEY": "storage_account_key",
             "SPOTIFY-CLIENT-ID": "spotify_client_id",
             "SPOTIFY-CLIENT-SECRET": "spotify_client_secret",
+            "ALLOWED-ORIGINS": "allowed_origins",
         }
 
         for kv_name, attr_name in kv_mapping.items():
