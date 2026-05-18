@@ -149,7 +149,8 @@ resource "azurerm_linux_web_app" "backend" {
     application_stack {
       python_version = "3.11"
     }
-    always_on = false  # B1 no soporta always_on
+    always_on        = false # B1 no soporta always_on
+    app_command_line = "uvicorn main:app --host 0.0.0.0 --port 8000"
   }
 
   app_settings = {
