@@ -23,7 +23,7 @@ load_dotenv()
 if not settings.is_production:
     try:
         from core.database import Base, engine
-        import core.models  # Importar modelos para que Base los conozca
+        import core.models  # noqa: F401
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"Error creando tablas: {e}")
@@ -89,6 +89,23 @@ app.include_router(external.router)  # /api/v1/external
 
 
 # ──────────────────── HEALTH CHECKS ────────────────────
+@app.on_event("startup")
+async def startup_event():
+    """Valida conectividad a la BD al iniciar"""
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        from core.database import SessionLocal
+        from sqlalchemy import text
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        logger.info("✅ Conexión a BD verificada")
+    except Exception as e:
+        logger.error(f"❌ Error de conectividad a BD: {e}", exc_info=True)
+        raise
+
+
 @app.get("/", tags=["root"])
 async def root():
     """Endpoint raíz"""
