@@ -139,7 +139,7 @@ if settings.keyvault_url:
         from azure.identity import DefaultAzureCredential
         from azure.keyvault.secrets import SecretClient
 
-        print(f"Conectando a Key Vault: {settings.keyvault_url}")
+        print(f"📦 Conectando a Key Vault: {settings.keyvault_url}")
         credential = DefaultAzureCredential()
         client = SecretClient(vault_url=settings.keyvault_url, credential=credential)
 
@@ -154,17 +154,27 @@ if settings.keyvault_url:
             "ALLOWED-ORIGINS": "allowed_origins",
         }
 
+        loaded_secrets = []
         for kv_name, attr_name in kv_mapping.items():
             try:
                 secret = client.get_secret(kv_name)
                 if secret.value:
                     setattr(settings, attr_name, secret.value)
-                    # No imprimimos el valor por seguridad
-                    print(f"✅ Secreto cargado desde Key Vault: {kv_name}")
+                    loaded_secrets.append(kv_name)
             except Exception as e:
-                print(f"⚠️ No se pudo cargar el secreto {kv_name} desde Key Vault: {e}")
+                print(f"⚠️ No se pudo cargar el secreto {kv_name}: {e}")
+
+        print(f"✅ {len(loaded_secrets)}/{len(kv_mapping)} secretos cargados desde Key Vault: {', '.join(loaded_secrets)}")
+
+        if settings.is_production and "DATABASE-URL" not in loaded_secrets:
+            raise ValueError(
+                "❌ DATABASE-URL no cargado desde Key Vault en producción. "
+                "Verifica que el App Service tiene acceso al Key Vault."
+            )
 
     except ImportError:
         print("⚠️ azure-identity o azure-keyvault-secrets no están instalados.")
     except Exception as e:
-        print(f"❌ Error crítico conectando a Key Vault: {e}")
+        if settings.is_production:
+            raise
+        print(f"⚠️ Error conectando a Key Vault en desarrollo (no crítico): {e}")
