@@ -163,4 +163,3 @@ if settings.keyvault_url:
         print("⚠️ azure-identity o azure-keyvault-secrets no están instalados.")
     except Exception as e:
         print(f"❌ Error crítico conectando a Key Vault: {e}")
-

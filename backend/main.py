@@ -23,7 +23,7 @@ load_dotenv()
 if not settings.is_production:
     try:
         from core.database import Base, engine
-        import core.models  # Importar modelos para que Base los conozca
+        import core.models  # noqa: F401
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"Error creando tablas: {e}")
