@@ -127,3 +127,40 @@ class Settings(BaseSettings):
 
 # Instancia global — una sola vez
 settings = Settings()
+
+# ─────────────────── INTEGRACIÓN AZURE KEY VAULT ───────────────────
+# Si estamos en Azure y tenemos una URL de Key Vault, intentamos cargar los secretos
+if settings.keyvault_url:
+    try:
+        from azure.identity import DefaultAzureCredential
+        from azure.keyvault.secrets import SecretClient
+
+        print(f"Conectando a Key Vault: {settings.keyvault_url}")
+        credential = DefaultAzureCredential()
+        client = SecretClient(vault_url=settings.keyvault_url, credential=credential)
+
+        # Mapeo de nombres de Key Vault (con guiones) a atributos de settings (con guiones bajos)
+        # Terraform crea los secretos con guiones por convención de Azure
+        kv_mapping = {
+            "DATABASE-URL": "database_url",
+            "SECRET-KEY": "secret_key",
+            "STORAGE-ACCOUNT-KEY": "storage_account_key",
+            "SPOTIFY-CLIENT-ID": "spotify_client_id",
+            "SPOTIFY-CLIENT-SECRET": "spotify_client_secret",
+        }
+
+        for kv_name, attr_name in kv_mapping.items():
+            try:
+                secret = client.get_secret(kv_name)
+                if secret.value:
+                    setattr(settings, attr_name, secret.value)
+                    # No imprimimos el valor por seguridad
+                    print(f"✅ Secreto cargado desde Key Vault: {kv_name}")
+            except Exception as e:
+                print(f"⚠️ No se pudo cargar el secreto {kv_name} desde Key Vault: {e}")
+
+    except ImportError:
+        print("⚠️ azure-identity o azure-keyvault-secrets no están instalados.")
+    except Exception as e:
+        print(f"❌ Error crítico conectando a Key Vault: {e}")
+
