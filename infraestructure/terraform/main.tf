@@ -150,7 +150,7 @@ resource "azurerm_linux_web_app" "backend" {
       python_version = "3.11"
     }
     always_on        = false # B1 no soporta always_on
-    app_command_line = "bash /home/site/wwwroot/startup.sh"
+    app_command_line = "python startup.py"
   }
 
   app_settings = {
