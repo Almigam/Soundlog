@@ -156,7 +156,6 @@ resource "azurerm_linux_web_app" "backend" {
   app_settings = {
     "KEYVAULT_URL"             = azurerm_key_vault.main.vault_uri
     "ENVIRONMENT"              = "production"
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
     "WEBSITES_PORT"            = "8000"
   }
 
