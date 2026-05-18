@@ -164,7 +164,8 @@ if settings.keyvault_url:
             except Exception as e:
                 print(f"⚠️ No se pudo cargar el secreto {kv_name}: {e}")
 
-        print(f"✅ {len(loaded_secrets)}/{len(kv_mapping)} secretos cargados desde Key Vault: {', '.join(loaded_secrets)}")
+        msg = f"✅ {len(loaded_secrets)}/{len(kv_mapping)} secretos cargados"
+        print(f"{msg} desde Key Vault: {', '.join(loaded_secrets)}")
 
         if settings.is_production and "DATABASE-URL" not in loaded_secrets:
             raise ValueError(
