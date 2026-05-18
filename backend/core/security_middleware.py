@@ -46,9 +46,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "default-src 'self'; "
             "script-src 'self'; "
             "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: https://i.scdn.co; "
             "font-src 'self'; "
-            "connect-src 'self'; "
+            "connect-src 'self' http://localhost:8000; "
             "frame-ancestors 'none'"
         )
 

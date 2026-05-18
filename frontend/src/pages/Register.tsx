@@ -34,8 +34,10 @@ export function Register() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    // Validación fuerte de contraseña (coincide con backend)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial');
       return;
     }
 
