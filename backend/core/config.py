@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = Field(default=60, ge=1)
 
     min_password_length: int = Field(default=8, ge=8)
+    max_password_length: int = Field(default=72, le=72)
     require_uppercase: bool = Field(default=True)
     require_numbers: bool = Field(default=True)
     require_special: bool = Field(default=True)

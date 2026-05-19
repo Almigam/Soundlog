@@ -78,6 +78,7 @@ export function Login() {
               onChange={handleChange}
               required
               placeholder="••••••••"
+              maxLength={72}
             />
           </div>
           <button type="submit" disabled={loading} className="submit-btn">

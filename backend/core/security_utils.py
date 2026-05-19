@@ -17,6 +17,7 @@ class PasswordValidator:
     def validate(
         password: str,
         min_length: int = 8,
+        max_length: int = 72,
         require_uppercase: bool = True,
         require_numbers: bool = True,
         require_special: bool = True,
@@ -27,6 +28,9 @@ class PasswordValidator:
         """
         if len(password) < min_length:
             return False, f"La contraseña debe tener al menos {min_length} caracteres"
+
+        if len(password) > max_length:
+            return False, f"La contraseña no puede exceder los {max_length} caracteres"
 
         if require_uppercase and not re.search(r"[A-Z]", password):
             return False, "La contraseña debe contener al menos una mayúscula"

@@ -35,9 +35,9 @@ export function Register() {
     }
 
     // Validación fuerte de contraseña (coincide con backend)
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,72}$/;
     if (!passwordRegex.test(formData.password)) {
-      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial');
+      setError('La contraseña debe tener entre 8 y 72 caracteres, una mayúscula, un número y un carácter especial');
       return;
     }
 
@@ -121,6 +121,7 @@ export function Register() {
               onChange={handleChange}
               required
               placeholder="••••••••"
+              maxLength={72}
             />
           </div>
           <div className="form-group">
@@ -133,6 +134,7 @@ export function Register() {
               onChange={handleChange}
               required
               placeholder="••••••••"
+              maxLength={72}
             />
           </div>
           <button type="submit" disabled={loading} className="submit-btn">
