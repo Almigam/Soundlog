@@ -19,14 +19,6 @@ from routes import albums, auth, reviews, songs, users, external
 # Cargar variables de ambiente
 load_dotenv()
 
-# Crear tablas si no existen
-try:
-    from core.database import Base, engine
-    import core.models  # noqa: F401
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"Error creando tablas: {e}")
-
 # Configurar logging
 logger = setup_logging(
     log_file=settings.log_file,
@@ -90,24 +82,41 @@ app.include_router(external.router)  # /api/v1/external
 # ──────────────────── HEALTH CHECKS ────────────────────
 @app.on_event("startup")
 async def startup_event():
-    """Valida conectividad a la BD al iniciar sin bloquear el arranque"""
+    """Inicializa la base de datos y valida conectividad"""
     import logging
     import asyncio
     logger = logging.getLogger(__name__)
 
+    # 1. Importar modelos PRIMERO (registra todas las tablas)
+    try:
+        import core.models  # noqa: F401
+        logger.info("Modelos de BD importados exitosamente")
+    except Exception as e:
+        logger.error(f"ERROR importando modelos: {e}", exc_info=True)
+
+    # 2. Intentar crear tablas (crítico para el primer despliegue)
+    try:
+        from core.database import Base, engine
+        logger.info("Verificando/Creando tablas en la base de datos...")
+        # create_all es síncrono, lo ejecutamos en un thread aparte para no bloquear
+        await asyncio.to_thread(Base.metadata.create_all, bind=engine)
+        logger.info(f"✅ Tablas verificadas/creadas: {list(Base.metadata.tables.keys())}")
+    except Exception as e:
+        logger.error(f"❌ ERROR CRÍTICO creando tablas: {e}", exc_info=True)
+
+    # 3. Verificar conectividad a BD
     async def check_db():
         try:
             from core.database import SessionLocal
             from sqlalchemy import text
-            # Intentar conexión con un timeout corto
             db = SessionLocal()
-            db.execute(text("SELECT 1"))
+            result = db.execute(text("SELECT 1"))
             db.close()
-            logger.info("Conexión a BD verificada exitosamente")
+            logger.info("✅ Conexión a BD verificada exitosamente")
         except Exception as e:
-            logger.error(f"Error de conectividad inicial a BD: {e}")
+            logger.error(f"❌ Error de conectividad a BD: {e}")
 
-    # Ejecutar en segundo plano para no bloquear el arranque de la API
+    # Ejecutar verificación en segundo plano
     asyncio.create_task(check_db())
 
 
@@ -150,6 +159,28 @@ async def readiness_check():
     except Exception as e:
         log.error(f"Readiness check failed: {e}")
         return {"status": "not_ready", "error": str(e)}
+
+
+@app.post("/admin/init-db", tags=["admin"])
+async def init_db_admin():
+    """Endpoint administrativo para crear tablas de BD (dev/staging)"""
+    import logging
+
+    if settings.is_production:
+        return {"error": "No permitido en producción"}, 403
+
+    log = logging.getLogger(__name__)
+    try:
+        from core.database import Base, engine
+        import core.models  # noqa: F401
+
+        log.info("🔧 Admin: Creando tablas...")
+        Base.metadata.create_all(bind=engine)
+        log.info(f"✅ Admin: Tablas creadas: {list(Base.metadata.tables.keys())}")
+        return {"message": "Tablas creadas exitosamente", "tables": list(Base.metadata.tables.keys())}
+    except Exception as e:
+        log.error(f"❌ Admin: Error creando tablas: {e}", exc_info=True)
+        return {"error": str(e)}, 500
 
 
 # ──────────────────── ERROR HANDLERS ────────────────────
