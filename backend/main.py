@@ -19,14 +19,13 @@ from routes import albums, auth, reviews, songs, users, external
 # Cargar variables de ambiente
 load_dotenv()
 
-# Crear tablas si no existen (solo en desarrollo)
-if not settings.is_production:
-    try:
-        from core.database import Base, engine
-        import core.models  # noqa: F401
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"Error creando tablas: {e}")
+# Crear tablas si no existen
+try:
+    from core.database import Base, engine
+    import core.models  # noqa: F401
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Error creando tablas: {e}")
 
 # Configurar logging
 logger = setup_logging(
