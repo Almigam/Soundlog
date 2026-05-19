@@ -57,8 +57,6 @@ Thumbs.db
 logs/
 backend/logs/
 
-README.md
-
 /debug_logs/
 debug_logs/*
 debug_logs_v2/
