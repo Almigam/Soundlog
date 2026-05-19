@@ -149,14 +149,17 @@ resource "azurerm_linux_web_app" "backend" {
     application_stack {
       python_version = "3.11"
     }
-    always_on        = false # B1 no soporta always_on
-    app_command_line = "python startup.py"
+    always_on        = true
+    app_command_line = "python3 startup.py"
   }
 
   app_settings = {
-    "KEYVAULT_URL"             = azurerm_key_vault.main.vault_uri
-    "ENVIRONMENT"              = "production"
-    "WEBSITES_PORT"            = "8000"
+    "KEYVAULT_URL"                   = azurerm_key_vault.main.vault_uri
+    "ENVIRONMENT"                    = "production"
+    "WEBSITES_PORT"                  = "8000"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "PYTHON_ENABLE_GUNICORN_MULTI_HTTP_SERVER_CONFIG" = "true"
+    "WEBSITES_CONTAINER_START_TIME_LIMIT" = "600"
   }
 
   tags = {
