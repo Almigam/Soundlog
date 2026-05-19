@@ -233,7 +233,10 @@ resource "azurerm_key_vault_secret" "database_url" {
 
   value = "mssql+pyodbc://sqladmin:${var.sql_admin_password}@${azurerm_mssql_server.main.fully_qualified_domain_name}/soundlog?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
 
-  depends_on = [azurerm_key_vault.main]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -247,7 +250,10 @@ resource "azurerm_key_vault_secret" "secret_key" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.jwt_secret_key
 
-  depends_on = [azurerm_key_vault.main]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -261,7 +267,10 @@ resource "azurerm_key_vault_secret" "storage_key" {
   key_vault_id = azurerm_key_vault.main.id
   value        = azurerm_storage_account.images.primary_access_key
 
-  depends_on = [azurerm_key_vault.main]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -276,7 +285,10 @@ resource "azurerm_key_vault_secret" "allowed_origins" {
   # Quitamos la barra final de la URL del storage para que coincida con el estándar de CORS
   value        = trimsuffix(azurerm_storage_account.frontend.primary_web_endpoint, "/")
 
-  depends_on = [azurerm_key_vault.main]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -290,7 +302,10 @@ resource "azurerm_key_vault_secret" "spotify_id" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.spotify_client_id
 
-  depends_on = [azurerm_key_vault.main]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 }
 
 resource "azurerm_key_vault_secret" "spotify_secret" {
@@ -298,7 +313,10 @@ resource "azurerm_key_vault_secret" "spotify_secret" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.spotify_client_secret
 
-  depends_on = [azurerm_key_vault.main]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 }
 
 # ──────────────────────────────────────────────
