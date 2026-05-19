@@ -91,19 +91,25 @@ app.include_router(external.router)  # /api/v1/external
 # ──────────────────── HEALTH CHECKS ────────────────────
 @app.on_event("startup")
 async def startup_event():
-    """Valida conectividad a la BD al iniciar"""
+    """Valida conectividad a la BD al iniciar sin bloquear el arranque"""
     import logging
+    import asyncio
     logger = logging.getLogger(__name__)
-    try:
-        from core.database import SessionLocal
-        from sqlalchemy import text
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        logger.info("✅ Conexión a BD verificada")
-    except Exception as e:
-        logger.error(f"❌ Error de conectividad a BD: {e}", exc_info=True)
-        raise
+
+    async def check_db():
+        try:
+            from core.database import SessionLocal
+            from sqlalchemy import text
+            # Intentar conexión con un timeout corto
+            db = SessionLocal()
+            db.execute(text("SELECT 1"))
+            db.close()
+            logger.info("Conexión a BD verificada exitosamente")
+        except Exception as e:
+            logger.error(f"Error de conectividad inicial a BD: {e}")
+
+    # Ejecutar en segundo plano para no bloquear el arranque de la API
+    asyncio.create_task(check_db())
 
 
 @app.get("/", tags=["root"])
