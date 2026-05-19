@@ -176,28 +176,24 @@ resource "azurerm_key_vault" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
-  sku_name            = "standard"  # ~0.60€/mes
+  sku_name            = "standard"
 
-  # Permite que la Managed Identity del App Service acceda
   soft_delete_retention_days = 7
-  purge_protection_enabled   = false  # false facilita limpieza en dev
+  purge_protection_enabled   = false
+
+  # Política para el ejecutor de Terraform (GitHub Actions / Local)
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+
+    secret_permissions = ["Get", "Set", "Delete", "List", "Purge"]
+  }
 
   tags = {
     project    = "soundlog"
     managed_by = "terraform"
   }
 }
-
-# Permiso 1 — El ejecutor de Terraform (Usuario local o GitHub Actions) 
-# puede escribir secretos durante el apply/destroy
-resource "azurerm_key_vault_access_policy" "terraform_executor" {
-  key_vault_id = azurerm_key_vault.main.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
-
-  secret_permissions = ["Get", "Set", "Delete", "List", "Purge"]
-}
-
 # Permiso 2 — El App Service (Managed Identity) puede leer secretos
 # NOTA: Este recurso solo funciona tras el primer apply que añade la identity
 # al App Service. Ver instrucciones de despliegue en README.
@@ -222,7 +218,7 @@ resource "azurerm_key_vault_secret" "database_url" {
 
   value = "mssql+pyodbc://sqladmin:${var.sql_admin_password}@${azurerm_mssql_server.main.fully_qualified_domain_name}/soundlog?driver=ODBC+Driver+17+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [azurerm_key_vault.main]
 
   tags = {
     project    = "soundlog"
@@ -236,7 +232,7 @@ resource "azurerm_key_vault_secret" "secret_key" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.jwt_secret_key
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [azurerm_key_vault.main]
 
   tags = {
     project    = "soundlog"
@@ -250,7 +246,7 @@ resource "azurerm_key_vault_secret" "storage_key" {
   key_vault_id = azurerm_key_vault.main.id
   value        = azurerm_storage_account.images.primary_access_key
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [azurerm_key_vault.main]
 
   tags = {
     project    = "soundlog"
@@ -265,7 +261,7 @@ resource "azurerm_key_vault_secret" "allowed_origins" {
   # Quitamos la barra final de la URL del storage para que coincida con el estándar de CORS
   value        = trimsuffix(azurerm_storage_account.frontend.primary_web_endpoint, "/")
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [azurerm_key_vault.main]
 
   tags = {
     project    = "soundlog"
@@ -273,13 +269,13 @@ resource "azurerm_key_vault_secret" "allowed_origins" {
   }
 }
 
-# 🎵 Spotify API Secrets
+# Spotify API Secrets
 resource "azurerm_key_vault_secret" "spotify_id" {
   name         = "SPOTIFY-CLIENT-ID"
   key_vault_id = azurerm_key_vault.main.id
   value        = var.spotify_client_id
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [azurerm_key_vault.main]
 }
 
 resource "azurerm_key_vault_secret" "spotify_secret" {
@@ -287,7 +283,7 @@ resource "azurerm_key_vault_secret" "spotify_secret" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.spotify_client_secret
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [azurerm_key_vault.main]
 }
 
 # ──────────────────────────────────────────────
