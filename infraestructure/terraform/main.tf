@@ -195,18 +195,19 @@ resource "azurerm_key_vault" "main" {
   soft_delete_retention_days = 7
   purge_protection_enabled   = false
 
-  # Política para el ejecutor de Terraform (GitHub Actions / Local)
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
-    secret_permissions = ["Get", "Set", "Delete", "List", "Purge"]
-  }
-
   tags = {
     project    = "soundlog"
     managed_by = "terraform"
   }
+}
+
+# Permiso 1 — El ejecutor de Terraform (GitHub Actions / Local)
+resource "azurerm_key_vault_access_policy" "terraform_executor" {
+  key_vault_id = azurerm_key_vault.main.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  secret_permissions = ["Get", "Set", "Delete", "List", "Purge"]
 }
 # Permiso 2 — El App Service (Managed Identity) puede leer secretos
 # NOTA: Este recurso solo funciona tras el primer apply que añade la identity
