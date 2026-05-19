@@ -2,6 +2,7 @@
 Utilitarios de seguridad y autenticación mejorados
 """
 
+import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
@@ -38,7 +39,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Usa timing-safe comparison.
     """
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        # Hash SHA256 de la contraseña antes de verificar con bcrypt
+        password_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+        return pwd_context.verify(password_hash, hashed_password)
     except Exception as e:
         logger.warning(f"Error durante verificación de contraseña: {str(e)}")
         return False
@@ -61,7 +64,9 @@ def get_password_hash(password: str) -> str:
     if not is_valid:
         raise ValueError(error_msg)
 
-    return pwd_context.hash(password)
+    # Hash SHA256 de la contraseña antes de bcrypt (limita a 64 bytes)
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    return pwd_context.hash(password_hash)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
