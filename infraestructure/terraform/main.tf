@@ -150,7 +150,7 @@ resource "azurerm_linux_web_app" "backend" {
       python_version = "3.11"
     }
     always_on        = true
-    app_command_line = "gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 1200 --access-logfile - --error-logfile -"
+    app_command_line = "gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 600"
   }
 
   app_settings = {
@@ -158,8 +158,22 @@ resource "azurerm_linux_web_app" "backend" {
     "ENVIRONMENT"                    = "production"
     "WEBSITES_PORT"                  = "8000"
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "ENABLE_ORYX_BUILD"              = "true"
+    "SECRET_KEY"                     = var.jwt_secret_key # Fallback para evitar crash en validación
     "PYTHON_ENABLE_GUNICORN_MULTI_HTTP_SERVER_CONFIG" = "true"
     "WEBSITES_CONTAINER_START_TIME_LIMIT" = "600"
+  }
+
+  logs {
+    http_logs {
+      file_system {
+        retention_in_days = 7
+        retention_in_mb   = 35
+      }
+    }
+    application_logs {
+      file_system_level = "Information"
+    }
   }
 
   tags = {

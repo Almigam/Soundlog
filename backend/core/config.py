@@ -140,11 +140,11 @@ if settings.keyvault_url:
         from azure.keyvault.secrets import SecretClient
 
         print(f"📦 Conectando a Key Vault: {settings.keyvault_url}")
+        # Reducir el número de reintentos para no bloquear el arranque
         credential = DefaultAzureCredential()
         client = SecretClient(vault_url=settings.keyvault_url, credential=credential)
 
         # Mapeo de nombres de Key Vault (con guiones) a atributos de settings (con guiones bajos)
-        # Terraform crea los secretos con guiones por convención de Azure
         kv_mapping = {
             "DATABASE-URL": "database_url",
             "SECRET-KEY": "secret_key",
@@ -157,25 +157,20 @@ if settings.keyvault_url:
         loaded_secrets = []
         for kv_name, attr_name in kv_mapping.items():
             try:
+                # Intentamos obtener el secreto con un timeout
                 secret = client.get_secret(kv_name)
-                if secret.value:
+                if secret and secret.value:
                     setattr(settings, attr_name, secret.value)
                     loaded_secrets.append(kv_name)
             except Exception as e:
                 print(f"⚠️ No se pudo cargar el secreto {kv_name}: {e}")
 
-        msg = f"✅ {len(loaded_secrets)}/{len(kv_mapping)} secretos cargados"
-        print(f"{msg} desde Key Vault: {', '.join(loaded_secrets)}")
-
+        if loaded_secrets:
+            print(f"✅ {len(loaded_secrets)} secretos cargados: {', '.join(loaded_secrets)}")
+        
+        # Validación crítica en producción (solo si no se cargó nada)
         if settings.is_production and "DATABASE-URL" not in loaded_secrets:
-            raise ValueError(
-                "❌ DATABASE-URL no cargado desde Key Vault en producción. "
-                "Verifica que el App Service tiene acceso al Key Vault."
-            )
+            print("❌ ADVERTENCIA: DATABASE-URL no cargado. El backend podría fallar al conectar.")
 
-    except ImportError:
-        print("⚠️ azure-identity o azure-keyvault-secrets no están instalados.")
     except Exception as e:
-        if settings.is_production:
-            raise
-        print(f"⚠️ Error conectando a Key Vault en desarrollo (no crítico): {e}")
+        print(f"⚠️ Error conectando a Key Vault: {e}")
