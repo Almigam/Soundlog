@@ -24,7 +24,7 @@ async def get_songs(
     query = db.query(Song)
     if album_id is not None:
         query = query.filter(Song.album_id == album_id)
-    songs = query.offset(skip).limit(limit).all()
+    songs = query.order_by(Song.id).offset(skip).limit(limit).all()
     return songs
 
 

@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/v1/albums", tags=["albums"])
 @router.get("/", response_model=List[AlbumResponse])
 async def get_albums(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
     """Listar álbumes con paginación"""
-    albums = db.query(Album).offset(skip).limit(limit).all()
+    albums = db.query(Album).order_by(Album.id).offset(skip).limit(limit).all()
     return albums
 
 

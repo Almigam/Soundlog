@@ -60,7 +60,7 @@ export const authAPI = {
     }),
   
   register: (userData: any) =>
-    api.post<User>('/api/v1/users/', userData),
+    api.post<User>('/api/v1/auth/register', userData),
   
   getMe: () =>
     api.get<User>('/api/v1/users/me'),
@@ -99,7 +99,7 @@ export const reviewsAPI = {
     api.get<Review[]>('/api/v1/reviews/me'),
   
   create: (rating: number, albumId?: number, songId?: number, comment?: string) =>
-    api.post<Review>('/api/v1/reviews', {
+    api.post<Review>('/api/v1/reviews/', {
       rating,
       album_id: albumId,
       song_id: songId,
