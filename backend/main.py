@@ -110,7 +110,7 @@ async def startup_event():
             from core.database import SessionLocal
             from sqlalchemy import text
             db = SessionLocal()
-            result = db.execute(text("SELECT 1"))
+            db.execute(text("SELECT 1"))
             db.close()
             logger.info("✅ Conexión a BD verificada exitosamente")
         except Exception as e:
