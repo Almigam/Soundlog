@@ -167,7 +167,7 @@ if settings.keyvault_url:
 
         if loaded_secrets:
             print(f"✅ {len(loaded_secrets)} secretos cargados: {', '.join(loaded_secrets)}")
-        
+
         # Validación crítica en producción (solo si no se cargó nada)
         if settings.is_production and "DATABASE-URL" not in loaded_secrets:
             print("❌ ADVERTENCIA: DATABASE-URL no cargado. El backend podría fallar al conectar.")
