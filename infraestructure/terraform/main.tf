@@ -150,7 +150,7 @@ resource "azurerm_linux_web_app" "backend" {
       python_version = "3.11"
     }
     always_on        = true
-    app_command_line = "python3 startup.py"
+    app_command_line = "gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout 600"
   }
 
   app_settings = {
@@ -216,7 +216,7 @@ resource "azurerm_key_vault_secret" "database_url" {
   name         = "DATABASE-URL"
   key_vault_id = azurerm_key_vault.main.id
 
-  value = "mssql+pyodbc://sqladmin:${var.sql_admin_password}@${azurerm_mssql_server.main.fully_qualified_domain_name}/soundlog?driver=ODBC+Driver+17+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
+  value = "mssql+pyodbc://sqladmin:${var.sql_admin_password}@${azurerm_mssql_server.main.fully_qualified_domain_name}/soundlog?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
 
   depends_on = [azurerm_key_vault.main]
 
