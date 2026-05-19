@@ -467,6 +467,15 @@ az webapp config appsettings list \
   --name soundlog-dev-api
 ```
 
+### Problema: "A resource with the ID ... already exists" (Key Vault Access Policy)
+**Causa:** Azure añade automáticamente una política de acceso para el creador del Key Vault, pero Terraform no la tiene en su archivo de estado.
+**Soluciones:**
+- **Opción A (Portal):** Ve a Azure Portal -> Key Vault -> Access Policies. Borra la política que corresponde a tu identidad de GitHub Actions y vuelve a ejecutar el workflow.
+- **Opción B (CLI):** Importa el recurso manualmente:
+  ```powershell
+  terraform import azurerm_key_vault_access_policy.terraform_executor /subscriptions/<SUB_ID>/resourceGroups/rg-soundlog-dev/providers/Microsoft.KeyVault/vaults/soundlog-dev-kv/objectId/<OBJECT_ID>
+  ```
+
 ---
 
 ## 📚 Próximos Pasos
