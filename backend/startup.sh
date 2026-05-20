@@ -9,12 +9,8 @@ echo "Iniciando Soundlog Backend..."
 echo "Python version: $(python --version)"
 echo "Working directory: $(pwd)"
 
-# En Azure, el código está en /home/site/wwwroot
-# Nos posicionamos allí
-if [ -d "/home/site/wwwroot" ]; then
-    cd /home/site/wwwroot
-    echo "Cambiado a directorio: $(pwd)"
-fi
+# IMPORTANTE: El código está en el directorio actual (donde Oryx lo extrajo)
+# El PYTHONPATH ya apunta al venv correcto
 
 # Verificar que requirements.txt existe
 if [ ! -f "requirements.txt" ]; then
@@ -35,6 +31,7 @@ echo "Usando puerto: $PORT"
 # Verificar que main.py existe
 if [ ! -f "main.py" ]; then
     echo "ERROR: main.py no encontrado en $(pwd)"
+    echo "Contenido del directorio:"
     ls -la
     exit 1
 fi
