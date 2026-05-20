@@ -127,7 +127,7 @@ backend/
 │   ├── reviews.py            # Reseñas
 │   └── external.py           # APIs externas
 ├── main.py                    # Punto de entrada
-├── startup.py                 # Inicialización
+├── startup.sh                 # Script de inicio para Azure
 ├── requirements.txt
 └── logs/                      # Archivos de log
 ```
