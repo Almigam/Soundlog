@@ -53,6 +53,7 @@ def get_password_hash(password: str) -> str:
     Validar fortaleza antes de hashear.
     Utiliza SHA256 + bcrypt para soportar contraseñas largas (> 72 bytes).
     """
+    logger.info(f"DEBUG: Validando contraseña de longitud {len(password)}")
     # Validar fortaleza
     is_valid, error_msg = password_validator.validate(
         password,
@@ -63,12 +64,21 @@ def get_password_hash(password: str) -> str:
     )
 
     if not is_valid:
+        logger.warning(f"DEBUG: Validación de fortaleza falló: {error_msg}")
         raise ValueError(error_msg)
 
     # Hash SHA256 de la contraseña antes de bcrypt (64 bytes hex)
     # Esto permite contraseñas de cualquier longitud sin exceder el límite de 72 bytes de bcrypt
     password_hash = hashlib.sha256(password.encode()).hexdigest()
-    return pwd_context.hash(password_hash)
+    logger.info(f"DEBUG: Password pre-hasheado (SHA256). Longitud: {len(password_hash)}")
+    
+    try:
+        hashed = pwd_context.hash(password_hash)
+        logger.info("DEBUG: Password hasheado con bcrypt exitosamente")
+        return hashed
+    except Exception as e:
+        logger.error(f"DEBUG: Error en pwd_context.hash: {type(e).__name__}: {str(e)}")
+        raise ValueError(str(e))
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

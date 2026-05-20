@@ -30,7 +30,7 @@ class PasswordValidator:
             return False, f"La contraseña debe tener al menos {min_length} caracteres"
 
         if len(password) > max_length:
-            return False, f"La contraseña no puede exceder los {max_length} caracteres"
+            return False, f"La contraseña no puede exceder los {max_length} caracteres (actual: {len(password)})"
 
         if require_uppercase and not re.search(r"[A-Z]", password):
             return False, "La contraseña debe contener al menos una mayúscula"
