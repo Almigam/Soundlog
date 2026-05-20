@@ -16,7 +16,11 @@ from core.security import (
     get_password_hash,
     verify_password,
 )
-from core.security_utils import email_validator, login_rate_limiter, username_validator
+from core.security_utils import (
+    email_validator,
+    login_rate_limiter,
+    username_validator
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -26,7 +30,9 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 @router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED
 )
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     """
@@ -34,8 +40,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
     Validaciones:
     - Email válido y único
-    - Username único y válido (3-30 caracteres, solo alfanuméricos, guiones, guiones bajos)
-    - Contraseña fuerte (8+ caracteres, mayúscula, número, carácter especial)
+    - Username único y válido (3-30 caracteres, alfanuméricos, guiones)
+    - Contraseña fuerte (8+ caracteres, mayúscula, número, especial)
     """
 
     # Validar email
@@ -49,18 +55,24 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     email_clean = email_validator.sanitize(user.email)
 
     # Verificar email duplicado
-    existing_email = db.query(User).filter(User.email == email_clean).first()
+    existing_email = db.query(User).filter(
+        User.email == email_clean
+    ).first()
     if existing_email:
         logger.warning(f"Email already registered: {email_clean}")
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El email ya está registrado"
         )
 
     # Validar username
     if not username_validator.is_valid(user.username):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Username inválido. Debe tener 3-30 caracteres, solo letras, números, guiones y guiones bajos",
+            detail=(
+                "Username inválido. Debe tener 3-30 caracteres, "
+                "letras, números, guiones y guiones bajos"
+            ),
         )
 
     username_clean = username_validator.sanitize(user.username)
@@ -110,7 +122,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
 ):
     """
     Iniciar sesión y obtener tokens (access + refresh).
@@ -134,8 +147,8 @@ async def login(
     user = (
         db.query(User)
         .filter(
-            (User.email == form_data.username) | (
-                User.username == form_data.username)
+            (User.email == form_data.username) |
+            (User.username == form_data.username)
         )
         .first()
     )
