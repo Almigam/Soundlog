@@ -51,6 +51,7 @@ def get_password_hash(password: str) -> str:
     """
     Hashear contraseña.
     Validar fortaleza antes de hashear.
+    Utiliza SHA256 + bcrypt para soportar contraseñas largas (> 72 bytes).
     """
     # Validar fortaleza
     is_valid, error_msg = password_validator.validate(
@@ -64,7 +65,8 @@ def get_password_hash(password: str) -> str:
     if not is_valid:
         raise ValueError(error_msg)
 
-    # Hash SHA256 de la contraseña antes de bcrypt (limita a 64 bytes)
+    # Hash SHA256 de la contraseña antes de bcrypt (64 bytes hex)
+    # Esto permite contraseñas de cualquier longitud sin exceder el límite de 72 bytes de bcrypt
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     return pwd_context.hash(password_hash)
 

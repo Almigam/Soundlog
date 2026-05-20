@@ -9,8 +9,14 @@ echo "Iniciando Soundlog Backend..."
 echo "Python version: $(python --version)"
 echo "Working directory: $(pwd)"
 
-# IMPORTANTE: El código está en el directorio actual (donde Oryx lo extrajo)
-# El PYTHONPATH ya apunta al venv correcto
+# Forzar que Python no genere archivos .pyc
+export PYTHONDONTWRITEBYTECODE=1
+
+# Limpiar caché de Python antiguo
+echo "Limpiando caché de Python..."
+find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+find . -type f -name "*.pyc" -delete 2>/dev/null || true
+echo "Caché limpiado"
 
 # Verificar que requirements.txt existe
 if [ ! -f "requirements.txt" ]; then
