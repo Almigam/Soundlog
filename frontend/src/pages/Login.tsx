@@ -52,8 +52,8 @@ export function Login() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>Soundlog</h1>
-        <p className="subtitle">Reseñas de Álbumes y Canciones</p>
+        <h1>Sound<span>log</span></h1>
+        <p className="subtitle">Tu diario personal de música. <br/> Reseña álbumes y comparte tu pasión.</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -78,6 +78,7 @@ export function Login() {
               onChange={handleChange}
               required
               placeholder="••••••••"
+              maxLength={72}
             />
           </div>
           <button type="submit" disabled={loading} className="submit-btn">

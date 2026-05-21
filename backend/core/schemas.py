@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=30)
     full_name: Optional[str] = Field(None, max_length=255)
+    profile_picture_url: Optional[str] = Field(None, max_length=500)
 
     @validator("username")
     def validate_username(cls, v):
@@ -30,7 +31,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema para crear usuario con validación de contraseña"""
 
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=8, max_length=500)
 
     @validator("password")
     def validate_password(cls, v):
@@ -52,6 +53,7 @@ class UserUpdate(BaseModel):
     """Schema para actualizar usuario"""
 
     full_name: Optional[str] = Field(None, max_length=255)
+    profile_picture_url: Optional[str] = Field(None, max_length=500)
 
 
 class UserResponse(UserBase):
@@ -153,7 +155,10 @@ class ReviewBase(BaseModel):
 
 
 class ReviewCreate(ReviewBase):
-    """Schema para crear reseña — exactamente uno de album_id o song_id es obligatorio"""
+    """
+    Schema para crear reseña — exactamente uno de
+    album_id o song_id es obligatorio
+    """
 
     album_id: Optional[int] = None
     song_id: Optional[int] = None

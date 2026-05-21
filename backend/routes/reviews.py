@@ -27,6 +27,7 @@ async def get_album_reviews(
     reviews = (
         db.query(Review)
         .filter(Review.album_id == album_id)
+        .order_by(Review.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
@@ -47,6 +48,7 @@ async def get_song_reviews(
     reviews = (
         db.query(Review)
         .filter(Review.song_id == song_id)
+        .order_by(Review.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
@@ -65,6 +67,7 @@ async def get_my_reviews(
     reviews = (
         db.query(Review)
         .filter(Review.user_id == current_user_id)
+        .order_by(Review.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()

@@ -5,6 +5,7 @@ Logging mejorado con rotación
 import logging
 import logging.handlers
 from pathlib import Path
+from core.config import settings
 
 
 def setup_logging(
@@ -25,7 +26,10 @@ def setup_logging(
 
     # Formato detallado
     formatter = logging.Formatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+        fmt=(
+            "%(asctime)s - %(name)s - %(levelname)s - "
+            "[%(filename)s:%(lineno)d] - %(message)s"
+        ),
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -47,6 +51,20 @@ def setup_logging(
     # Suprimir logs muy verbosos
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
+    # Configurar Azure Application Insights si hay connection string
+    if settings.applicationinsights_connection_string:
+        try:
+            from azure.monitor.opentelemetry import configure_azure_monitor
+            configure_azure_monitor(
+                connection_string=(
+                    settings.applicationinsights_connection_string
+                ),
+                logger_name=settings.app_name,
+            )
+            logging.info("✅ Azure Monitor configurado exitosamente")
+        except Exception as e:
+            logging.error(f"⚠️ Error configurando Azure Monitor: {e}")
 
     return logger
 

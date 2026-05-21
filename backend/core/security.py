@@ -10,7 +10,9 @@ import bcrypt
 
 # Monkeypatch para corregir incompatibilidad entre passlib y bcrypt 4.0+
 if not hasattr(bcrypt, "__about__"):
-    bcrypt.__about__ = type("About", (object,), {"__version__": bcrypt.__version__})
+    bcrypt.__about__ = type(
+        "About", (object,), {"__version__": bcrypt.__version__}
+    )
 
 from core.config import settings
 from core.security_utils import password_validator
@@ -40,7 +42,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
-        logger.warning(f"Error durante verificación de contraseña: {str(e)}")
+        msg = f"Error durante verificación de contraseña: {str(e)}"
+        logger.warning(msg)
         return False
 
 
@@ -64,7 +67,10 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Crear JWT access token.
     El token expira automáticamente.
@@ -87,15 +93,20 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     try:
         encoded_jwt = jwt.encode(
-            to_encode, settings.secret_key, algorithm=settings.algorithm
+            to_encode,
+            settings.secret_key,
+            algorithm=settings.algorithm
         )
         return encoded_jwt
     except Exception as e:
-        logger.error(f"Error creando token: {str(e)}")
+        logger.error(f"Error en token: {str(e)}")
         raise
 
 
-def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_refresh_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Crear JWT refresh token.
     Válido por más tiempo, usado para obtener nuevos access tokens.
@@ -104,7 +115,9 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+        expire = datetime.utcnow() + timedelta(
+            days=settings.refresh_token_expire_days
+        )
 
     to_encode.update(
         {
@@ -116,11 +129,13 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
 
     try:
         encoded_jwt = jwt.encode(
-            to_encode, settings.secret_key, algorithm=settings.algorithm
+            to_encode,
+            settings.secret_key,
+            algorithm=settings.algorithm
         )
         return encoded_jwt
     except Exception as e:
-        logger.error(f"Error creando refresh token: {str(e)}")
+        logger.error(f"Error en refresh token: {str(e)}")
         raise
 
 
@@ -133,7 +148,9 @@ def verify_token(
     """
     try:
         payload = jwt.decode(
-            token, settings.secret_key, algorithms=[settings.algorithm]
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm]
         )
 
         # Verificar tipo de token

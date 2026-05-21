@@ -14,19 +14,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from routes import albums, auth, reviews, songs, users, external
+import os
 
 # Cargar variables de ambiente
 load_dotenv()
 
-# Crear tablas si no existen (solo en desarrollo)
-if not settings.is_production:
-    try:
-        from core.database import Base, engine
-        import core.models  # noqa: F401
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"Error creando tablas: {e}")
+# Asegurar que el directorio de uploads existe
+os.makedirs("uploads/avatars", exist_ok=True)
 
 # Configurar logging
 logger = setup_logging(
@@ -79,6 +75,9 @@ app.add_middleware(AuditLoggingMiddleware)
 # 6. Sanitización de inputs (tamaño de payload y métodos HTTP)
 app.add_middleware(InputSanitizationMiddleware)
 
+# Servir archivos estáticos (para avatares)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # ──────────────────── ROUTERS ────────────────────
 app.include_router(auth.router)  # /api/v1/auth
 app.include_router(users.router)  # /api/v1/users
@@ -91,19 +90,76 @@ app.include_router(external.router)  # /api/v1/external
 # ──────────────────── HEALTH CHECKS ────────────────────
 @app.on_event("startup")
 async def startup_event():
-    """Valida conectividad a la BD al iniciar"""
+    """Inicializa la base de datos y valida conectividad"""
     import logging
+    import asyncio
     logger = logging.getLogger(__name__)
+
+    # 1. Importar modelos PRIMERO (registra todas las tablas)
     try:
-        from core.database import SessionLocal
-        from sqlalchemy import text
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        logger.info("✅ Conexión a BD verificada")
+        import core.models  # noqa: F401
+        logger.info("Modelos de BD importados exitosamente")
     except Exception as e:
-        logger.error(f"❌ Error de conectividad a BD: {e}", exc_info=True)
-        raise
+        logger.error(f"ERROR importando modelos: {e}", exc_info=True)
+
+    # 2. Intentar crear tablas e incluir migraciones manuales
+    try:
+        from core.database import Base, engine
+        from sqlalchemy import text
+        logger.info("Verificando/Creando tablas en la base de datos...")
+        # create_all es síncrono, lo ejecutamos en un thread aparte para no bloquear
+        await asyncio.to_thread(Base.metadata.create_all, bind=engine)
+        logger.info(f"✅ Tablas verificadas: {list(Base.metadata.tables.keys())}")
+
+        # Migración manual: Añadir profile_picture_url si falta
+        logger.info("Ejecutando migraciones manuales...")
+
+        def run_migrations():
+            with engine.begin() as conn:
+                # 1. SQL Server: añadir columna profile_picture_url a users
+                conn.execute(text("""
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE object_id = OBJECT_ID('users')
+                        AND name = 'profile_picture_url'
+                    )
+                    BEGIN
+                        ALTER TABLE users ADD profile_picture_url NVARCHAR(500) NULL;
+                    END
+                """))
+
+                # 2. SQL Server: añadir columna cover_image_url a albums
+                conn.execute(text("""
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE object_id = OBJECT_ID('albums')
+                        AND name = 'cover_image_url'
+                    )
+                    BEGIN
+                        ALTER TABLE albums ADD cover_image_url NVARCHAR(500) NULL;
+                    END
+                """))
+
+        await asyncio.to_thread(run_migrations)
+        logger.info("✅ Migraciones manuales finalizadas exitosamente")
+
+    except Exception as e:
+        logger.error(f"❌ ERROR CRÍTICO en base de datos: {e}", exc_info=True)
+
+    # 3. Verificar conectividad a BD
+    async def check_db():
+        try:
+            from core.database import SessionLocal
+            from sqlalchemy import text
+            db = SessionLocal()
+            db.execute(text("SELECT 1"))
+            db.close()
+            logger.info("✅ Conexión a BD verificada exitosamente")
+        except Exception as e:
+            logger.error(f"❌ Error de conectividad a BD: {e}")
+
+    # Ejecutar verificación en segundo plano
+    asyncio.create_task(check_db())
 
 
 @app.get("/", tags=["root"])
@@ -145,6 +201,31 @@ async def readiness_check():
     except Exception as e:
         log.error(f"Readiness check failed: {e}")
         return {"status": "not_ready", "error": str(e)}
+
+
+@app.post("/admin/init-db", tags=["admin"])
+async def init_db_admin():
+    """Endpoint administrativo para crear tablas de BD (dev/staging)"""
+    import logging
+
+    if settings.is_production:
+        return {"error": "No permitido en producción"}, 403
+
+    log = logging.getLogger(__name__)
+    try:
+        from core.database import Base, engine
+        import core.models  # noqa: F401
+
+        log.info("🔧 Admin: Creando tablas...")
+        Base.metadata.create_all(bind=engine)
+        log.info(f"✅ Admin: Tablas creadas: {list(Base.metadata.tables.keys())}")
+        return {
+            "message": "Tablas creadas exitosamente",
+            "tables": list(Base.metadata.tables.keys())
+        }
+    except Exception as e:
+        log.error(f"❌ Admin: Error creando tablas: {e}", exc_info=True)
+        return {"error": str(e)}, 500
 
 
 # ──────────────────── ERROR HANDLERS ────────────────────

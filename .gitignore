@@ -41,6 +41,9 @@ __pycache__/
 .venv/
 venv/
 .env
+.cache
+.pytest_cache/
+uploads/
 
 # ── IDEs ──────────────────────────────────────────────────────
 .vscode/settings.json
@@ -57,5 +60,9 @@ Thumbs.db
 logs/
 backend/logs/
 
-README.md
-
+/debug_logs/
+debug_logs/*
+debug_logs_v2/
+debug_logs_v2/*
+docker_debug.txt
+*.zip

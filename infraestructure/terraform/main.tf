@@ -118,6 +118,35 @@ resource "azurerm_mssql_database" "main" {
 }
 
 # ──────────────────────────────────────────────
+#  MONITORING — Log Analytics + App Insights
+# ──────────────────────────────────────────────
+resource "azurerm_log_analytics_workspace" "main" {
+  name                = "soundlog-law"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+resource "azurerm_application_insights" "main" {
+  name                = "soundlog-app-insights"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  workspace_id        = azurerm_log_analytics_workspace.main.id
+  application_type    = "web"
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+# ──────────────────────────────────────────────
 #  APP SERVICE — Backend FastAPI
 # ──────────────────────────────────────────────
 resource "azurerm_service_plan" "backend_plan" {
@@ -149,14 +178,32 @@ resource "azurerm_linux_web_app" "backend" {
     application_stack {
       python_version = "3.11"
     }
-    always_on        = false # B1 no soporta always_on
-    app_command_line = "python startup.py"
+    always_on        = true
+    app_command_line = "bash ./startup.sh"
   }
 
   app_settings = {
-    "KEYVAULT_URL"             = azurerm_key_vault.main.vault_uri
-    "ENVIRONMENT"              = "production"
-    "WEBSITES_PORT"            = "8000"
+    "KEYVAULT_URL"                   = azurerm_key_vault.main.vault_uri
+    "ENVIRONMENT"                    = "production"
+    "WEBSITES_PORT"                  = "8000"
+    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    "ENABLE_ORYX_BUILD"              = "true"
+    "SECRET_KEY"                     = var.jwt_secret_key # Fallback para evitar crash en validación
+    "PYTHON_ENABLE_GUNICORN_MULTI_HTTP_SERVER_CONFIG" = "true"
+    "WEBSITES_CONTAINER_START_TIME_LIMIT" = "600"
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
+  }
+
+  logs {
+    http_logs {
+      file_system {
+        retention_in_days = 7
+        retention_in_mb   = 35
+      }
+    }
+    application_logs {
+      file_system_level = "Information"
+    }
   }
 
   tags = {
@@ -173,11 +220,10 @@ resource "azurerm_key_vault" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
-  sku_name            = "standard"  # ~0.60€/mes
+  sku_name            = "standard"
 
-  # Permite que la Managed Identity del App Service acceda
   soft_delete_retention_days = 7
-  purge_protection_enabled   = false  # false facilita limpieza en dev
+  purge_protection_enabled   = false
 
   tags = {
     project    = "soundlog"
@@ -185,8 +231,7 @@ resource "azurerm_key_vault" "main" {
   }
 }
 
-# Permiso 1 — El ejecutor de Terraform (Usuario local o GitHub Actions) 
-# puede escribir secretos durante el apply/destroy
+# Permiso 1 — El ejecutor de Terraform (GitHub Actions / Local)
 resource "azurerm_key_vault_access_policy" "terraform_executor" {
   key_vault_id = azurerm_key_vault.main.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
@@ -194,7 +239,6 @@ resource "azurerm_key_vault_access_policy" "terraform_executor" {
 
   secret_permissions = ["Get", "Set", "Delete", "List", "Purge"]
 }
-
 # Permiso 2 — El App Service (Managed Identity) puede leer secretos
 # NOTA: Este recurso solo funciona tras el primer apply que añade la identity
 # al App Service. Ver instrucciones de despliegue en README.
@@ -217,9 +261,12 @@ resource "azurerm_key_vault_secret" "database_url" {
   name         = "DATABASE-URL"
   key_vault_id = azurerm_key_vault.main.id
 
-  value = "mssql+pyodbc://sqladmin:${var.sql_admin_password}@${azurerm_mssql_server.main.fully_qualified_domain_name}/soundlog?driver=ODBC+Driver+17+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
+  value = "mssql+pyodbc://sqladmin:${var.sql_admin_password}@${azurerm_mssql_server.main.fully_qualified_domain_name}/soundlog?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -233,7 +280,10 @@ resource "azurerm_key_vault_secret" "secret_key" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.jwt_secret_key
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -247,7 +297,10 @@ resource "azurerm_key_vault_secret" "storage_key" {
   key_vault_id = azurerm_key_vault.main.id
   value        = azurerm_storage_account.images.primary_access_key
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -262,7 +315,10 @@ resource "azurerm_key_vault_secret" "allowed_origins" {
   # Quitamos la barra final de la URL del storage para que coincida con el estándar de CORS
   value        = trimsuffix(azurerm_storage_account.frontend.primary_web_endpoint, "/")
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 
   tags = {
     project    = "soundlog"
@@ -270,13 +326,16 @@ resource "azurerm_key_vault_secret" "allowed_origins" {
   }
 }
 
-# 🎵 Spotify API Secrets
+# Spotify API Secrets
 resource "azurerm_key_vault_secret" "spotify_id" {
   name         = "SPOTIFY-CLIENT-ID"
   key_vault_id = azurerm_key_vault.main.id
   value        = var.spotify_client_id
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 }
 
 resource "azurerm_key_vault_secret" "spotify_secret" {
@@ -284,12 +343,32 @@ resource "azurerm_key_vault_secret" "spotify_secret" {
   key_vault_id = azurerm_key_vault.main.id
   value        = var.spotify_client_secret
 
-  depends_on = [azurerm_key_vault_access_policy.terraform_executor]
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
 }
 
 # ──────────────────────────────────────────────
 #  PERMISOS — Managed Identity → Blob Storage
 # ──────────────────────────────────────────────
+
+# Connection string de Application Insights — para backend y frontend
+resource "azurerm_key_vault_secret" "app_insights_connection_string" {
+  name         = "APPLICATION-INSIGHTS-CONNECTION-STRING"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = azurerm_application_insights.main.connection_string
+
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
 
 # La Managed Identity de GitHub Actions necesita poder
 # subir archivos al Blob Storage del frontend

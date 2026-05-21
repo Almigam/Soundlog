@@ -30,7 +30,10 @@ async def search_spotify_albums(
         if not results and not spotify_service.sp:
             raise HTTPException(
                 status_code=503,
-                detail="Servicio de Spotify no configurado. Añade SPOTIFY_CLIENT_ID y SECRET."
+                detail=(
+                    "Servicio de Spotify no configurado. "
+                    "Añade SPOTIFY_CLIENT_ID y SECRET."
+                )
             )
         return results
     except Exception as e:

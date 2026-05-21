@@ -5,6 +5,7 @@ export interface User {
   email: string;
   username: string;
   full_name?: string;
+  profile_picture_url?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -60,10 +61,22 @@ export const authAPI = {
     }),
   
   register: (userData: any) =>
-    api.post<User>('/api/v1/users/', userData),
+    api.post<User>('/api/v1/auth/register', userData),
   
   getMe: () =>
     api.get<User>('/api/v1/users/me'),
+};
+
+// Users API
+export const usersAPI = {
+  updateProfile: (userData: Partial<User>) =>
+    api.patch<User>('/api/v1/users/me', userData),
+  
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ profile_picture_url: string }>('/api/v1/users/me/avatar', formData);
+  }
 };
 
 // Albums API
@@ -99,7 +112,7 @@ export const reviewsAPI = {
     api.get<Review[]>('/api/v1/reviews/me'),
   
   create: (rating: number, albumId?: number, songId?: number, comment?: string) =>
-    api.post<Review>('/api/v1/reviews', {
+    api.post<Review>('/api/v1/reviews/', {
       rating,
       album_id: albumId,
       song_id: songId,
