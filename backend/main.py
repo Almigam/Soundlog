@@ -118,7 +118,9 @@ async def startup_event():
             # SQL Server: añadir columna profile_picture_url
             conn.execute(text("""
                 IF NOT EXISTS (
-                    SELECT * FROM sys.columns                    WHERE object_id = OBJECT_ID('users') AND name = 'profile_picture_url'
+                    SELECT * FROM sys.columns
+                    WHERE object_id = OBJECT_ID('users')
+                    AND name = 'profile_picture_url'
                 )
                 BEGIN
                     ALTER TABLE users ADD profile_picture_url NVARCHAR(500) NULL;
