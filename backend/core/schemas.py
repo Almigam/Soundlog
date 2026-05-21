@@ -15,6 +15,7 @@ class UserBase(BaseModel):
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=30)
     full_name: Optional[str] = Field(None, max_length=255)
+    profile_picture_url: Optional[str] = Field(None, max_length=500)
 
     @validator("username")
     def validate_username(cls, v):
@@ -52,6 +53,7 @@ class UserUpdate(BaseModel):
     """Schema para actualizar usuario"""
 
     full_name: Optional[str] = Field(None, max_length=255)
+    profile_picture_url: Optional[str] = Field(None, max_length=500)
 
 
 class UserResponse(UserBase):

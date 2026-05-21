@@ -1,18 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Review, reviewsAPI } from '../api';
+import { Review, reviewsAPI, usersAPI, User } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Profile.css';
 
 export function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, login } = useAuth();
   const navigate = useNavigate();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    full_name: user?.full_name || '',
+    profile_picture_url: user?.profile_picture_url || ''
+  });
+  const [updateLoading, setUpdateLoading] = useState(false);
 
   useEffect(() => {
     loadMyReviews();
-  }, []);
+    if (user) {
+      setEditForm({
+        full_name: user.full_name || '',
+        profile_picture_url: user.profile_picture_url || ''
+      });
+    }
+  }, [user]);
 
   const loadMyReviews = async () => {
     try {
@@ -22,6 +34,25 @@ export function Profile() {
       console.error('Error al cargar reseñas', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdateLoading(true);
+    try {
+      const response = await usersAPI.updateProfile(editForm);
+      // Update local storage and context
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        login(response.data, token);
+      }
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Error al actualizar perfil', err);
+      alert('Error al actualizar perfil');
+    } finally {
+      setUpdateLoading(false);
     }
   };
 
@@ -42,24 +73,60 @@ export function Profile() {
     <div className="profile-container">
       <header className="profile-header-new">
         <div className="profile-avatar-large">
-          {user.username[0]?.toUpperCase()}
+          {user.profile_picture_url ? (
+            <img src={user.profile_picture_url} alt={user.username} className="avatar-img" />
+          ) : (
+            user.username[0]?.toUpperCase()
+          )}
         </div>
         <div className="profile-name-section">
-          <h1>{user.full_name || user.username}</h1>
-          <div className="profile-stats-row">
-            <div className="stat-item">
-              <span className="stat-num">{totalReviews}</span>
-              <span className="stat-lbl">Reseñas</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-num">{avgRating}</span>
-              <span className="stat-lbl">Promedio</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-num">0</span>
-              <span className="stat-lbl">Seguidores</span>
-            </div>
+          <div className="profile-name-header">
+            <h1>{user.full_name || user.username}</h1>
+            <button className="edit-profile-btn" onClick={() => setIsEditing(!isEditing)}>
+              {isEditing ? 'Cancelar' : 'Editar Perfil'}
+            </button>
           </div>
+          
+          {isEditing ? (
+            <form onSubmit={handleUpdateProfile} className="edit-profile-form">
+              <div className="form-group">
+                <label>Nombre Completo</label>
+                <input 
+                  type="text" 
+                  value={editForm.full_name} 
+                  onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                  placeholder="Tu nombre real"
+                />
+              </div>
+              <div className="form-group">
+                <label>URL Foto de Perfil</label>
+                <input 
+                  type="text" 
+                  value={editForm.profile_picture_url} 
+                  onChange={(e) => setEditForm({...editForm, profile_picture_url: e.target.value})}
+                  placeholder="https://ejemplo.com/foto.jpg"
+                />
+              </div>
+              <button type="submit" className="save-btn" disabled={updateLoading}>
+                {updateLoading ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </form>
+          ) : (
+            <div className="profile-stats-row">
+              <div className="stat-item">
+                <span className="stat-num">{totalReviews}</span>
+                <span className="stat-lbl">Reseñas</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-num">{avgRating}</span>
+                <span className="stat-lbl">Promedio</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-num">0</span>
+                <span className="stat-lbl">Seguidores</span>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

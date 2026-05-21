@@ -5,6 +5,7 @@ export interface User {
   email: string;
   username: string;
   full_name?: string;
+  profile_picture_url?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -64,6 +65,12 @@ export const authAPI = {
   
   getMe: () =>
     api.get<User>('/api/v1/users/me'),
+};
+
+// Users API
+export const usersAPI = {
+  updateProfile: (userData: Partial<User>) =>
+    api.patch<User>('/api/v1/users/me', userData),
 };
 
 // Albums API

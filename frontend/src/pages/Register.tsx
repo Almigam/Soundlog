@@ -72,9 +72,10 @@ export function Register() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>Registro</h1>
+        <h1>Regís<span>trate</span></h1>
+        <p className="subtitle">Únete a la comunidad de melómanos <br/> y empieza a registrar tus escuchas.</p>
         {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message" style={{color: '#4caf50', background: 'rgba(76, 175, 80, 0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center'}}>{success}</div>}
+        {success && <div className="success-message">{success}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
