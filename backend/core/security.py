@@ -2,7 +2,6 @@
 Utilitarios de seguridad y autenticación mejorados
 """
 
-import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
@@ -41,11 +40,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Usa timing-safe comparison.
     """
     try:
-        # Hash SHA256 de la contraseña antes de verificar con bcrypt
-        password_hash = hashlib.sha256(plain_password.encode()).hexdigest()
-        return pwd_context.verify(password_hash, hashed_password)
+        return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
-        logger.warning(f"Error durante verificación de contraseña: {str(e)}")
+        msg = f"Error durante verificación de contraseña: {str(e)}"
+        logger.warning(msg)
         return False
 
 
@@ -53,9 +51,7 @@ def get_password_hash(password: str) -> str:
     """
     Hashear contraseña.
     Validar fortaleza antes de hashear.
-    Utiliza SHA256 + bcrypt para soportar contraseñas largas (> 72 bytes).
     """
-    logger.info(f"DEBUG: Validando contraseña de longitud {len(password)}")
     # Validar fortaleza
     is_valid, error_msg = password_validator.validate(
         password,
@@ -66,25 +62,9 @@ def get_password_hash(password: str) -> str:
     )
 
     if not is_valid:
-        logger.warning(f"DEBUG: Validación de fortaleza falló: {error_msg}")
         raise ValueError(error_msg)
 
-    # Hash SHA256 antes de bcrypt (64 bytes hex)
-    # Evita el límite de 72 bytes de bcrypt
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    logger.info(
-        f"DEBUG: Password pre-hasheado (SHA256). L: {len(password_hash)}"
-    )
-
-    try:
-        hashed = pwd_context.hash(password_hash)
-        logger.info("DEBUG: Password hasheado con bcrypt exitosamente")
-        return hashed
-    except Exception as e:
-        logger.error(
-            f"DEBUG: Error en pwd_context.hash: {type(e).__name__}: {str(e)}"
-        )
-        raise ValueError(str(e))
+    return pwd_context.hash(password)
 
 
 def create_access_token(
