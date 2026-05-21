@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Review, reviewsAPI, usersAPI, User } from '../api';
+import { Review, reviewsAPI, usersAPI } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Profile.css';
@@ -12,7 +12,6 @@ export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     full_name: user?.full_name || '',
-    profile_picture_url: user?.profile_picture_url || ''
   });
   const [updateLoading, setUpdateLoading] = useState(false);
 
@@ -21,7 +20,6 @@ export function Profile() {
     if (user) {
       setEditForm({
         full_name: user.full_name || '',
-        profile_picture_url: user.profile_picture_url || ''
       });
     }
   }, [user]);
@@ -56,6 +54,29 @@ export function Profile() {
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUpdateLoading(true);
+    try {
+      const response = await usersAPI.uploadAvatar(file);
+      // Actualizar el usuario en el contexto
+      if (user) {
+        const updatedUser = { ...user, profile_picture_url: response.data.profile_picture_url };
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          login(updatedUser, token);
+        }
+      }
+    } catch (err) {
+      console.error('Error al subir avatar', err);
+      alert('Error al subir la imagen');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     logout();
@@ -63,6 +84,16 @@ export function Profile() {
   };
 
   if (!user) return null;
+
+  const renderAvatar = () => {
+    if (user.profile_picture_url) {
+      const url = user.profile_picture_url.startsWith('http') 
+        ? user.profile_picture_url 
+        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${user.profile_picture_url}`;
+      return <img src={url} alt={user.username} className="avatar-img" />;
+    }
+    return user.username[0]?.toUpperCase();
+  };
 
   const totalReviews = reviews.length;
   const avgRating = totalReviews > 0 
@@ -73,10 +104,12 @@ export function Profile() {
     <div className="profile-container">
       <header className="profile-header-new">
         <div className="profile-avatar-large">
-          {user.profile_picture_url ? (
-            <img src={user.profile_picture_url} alt={user.username} className="avatar-img" />
-          ) : (
-            user.username[0]?.toUpperCase()
+          {renderAvatar()}
+          {isEditing && (
+            <label className="avatar-upload-overlay">
+              <input type="file" onChange={handleFileChange} accept="image/*" hidden />
+              <span>📷</span>
+            </label>
           )}
         </div>
         <div className="profile-name-section">
@@ -98,15 +131,7 @@ export function Profile() {
                   placeholder="Tu nombre real"
                 />
               </div>
-              <div className="form-group">
-                <label>URL Foto de Perfil</label>
-                <input 
-                  type="text" 
-                  value={editForm.profile_picture_url} 
-                  onChange={(e) => setEditForm({...editForm, profile_picture_url: e.target.value})}
-                  placeholder="https://ejemplo.com/foto.jpg"
-                />
-              </div>
+              <p className="help-text">Haz clic en la foto para subir una nueva (.png, .jpg)</p>
               <button type="submit" className="save-btn" disabled={updateLoading}>
                 {updateLoading ? 'Guardando...' : 'Guardar Cambios'}
               </button>

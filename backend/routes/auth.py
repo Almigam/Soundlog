@@ -147,8 +147,8 @@ async def login(
     user = (
         db.query(User)
         .filter(
-            (User.email == form_data.username) |
-            (User.username == form_data.username)
+            (User.email == form_data.username)
+            | (User.username == form_data.username)
         )
         .first()
     )

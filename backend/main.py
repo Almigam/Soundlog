@@ -14,10 +14,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from routes import albums, auth, reviews, songs, users, external
+import os
 
 # Cargar variables de ambiente
 load_dotenv()
+
+# Asegurar que el directorio de uploads existe
+os.makedirs("uploads/avatars", exist_ok=True)
 
 # Configurar logging
 logger = setup_logging(
@@ -69,6 +74,9 @@ app.add_middleware(AuditLoggingMiddleware)
 
 # 6. Sanitización de inputs (tamaño de payload y métodos HTTP)
 app.add_middleware(InputSanitizationMiddleware)
+
+# Servir archivos estáticos (para avatares)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ──────────────────── ROUTERS ────────────────────
 app.include_router(auth.router)  # /api/v1/auth

@@ -71,6 +71,12 @@ export const authAPI = {
 export const usersAPI = {
   updateProfile: (userData: Partial<User>) =>
     api.patch<User>('/api/v1/users/me', userData),
+  
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ profile_picture_url: string }>('/api/v1/users/me/avatar', formData);
+  }
 };
 
 // Albums API
