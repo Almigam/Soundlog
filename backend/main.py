@@ -114,21 +114,33 @@ async def startup_event():
         # Migración manual: Añadir profile_picture_url si falta
         logger.info("Ejecutando migraciones manuales...")
 
-        def run_migrations(conn):
-            # SQL Server: añadir columna profile_picture_url
-            conn.execute(text("""
-                IF NOT EXISTS (
-                    SELECT * FROM sys.columns
-                    WHERE object_id = OBJECT_ID('users')
-                    AND name = 'profile_picture_url'
-                )
-                BEGIN
-                    ALTER TABLE users ADD profile_picture_url NVARCHAR(500) NULL;
-                END
-            """))
-            conn.commit()
+        def run_migrations():
+            with engine.begin() as conn:
+                # 1. SQL Server: añadir columna profile_picture_url a users
+                conn.execute(text("""
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE object_id = OBJECT_ID('users')
+                        AND name = 'profile_picture_url'
+                    )
+                    BEGIN
+                        ALTER TABLE users ADD profile_picture_url NVARCHAR(500) NULL;
+                    END
+                """))
 
-        await asyncio.to_thread(engine.connect().run_callable, run_migrations)
+                # 2. SQL Server: añadir columna cover_image_url a albums
+                conn.execute(text("""
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE object_id = OBJECT_ID('albums')
+                        AND name = 'cover_image_url'
+                    )
+                    BEGIN
+                        ALTER TABLE albums ADD cover_image_url NVARCHAR(500) NULL;
+                    END
+                """))
+
+        await asyncio.to_thread(run_migrations)
         logger.info("✅ Migraciones manuales finalizadas exitosamente")
 
     except Exception as e:
@@ -207,7 +219,10 @@ async def init_db_admin():
         log.info("🔧 Admin: Creando tablas...")
         Base.metadata.create_all(bind=engine)
         log.info(f"✅ Admin: Tablas creadas: {list(Base.metadata.tables.keys())}")
-        return {"message": "Tablas creadas exitosamente", "tables": list(Base.metadata.tables.keys())}
+        return {
+            "message": "Tablas creadas exitosamente",
+            "tables": list(Base.metadata.tables.keys())
+        }
     except Exception as e:
         log.error(f"❌ Admin: Error creando tablas: {e}", exc_info=True)
         return {"error": str(e)}, 500

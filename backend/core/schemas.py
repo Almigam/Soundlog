@@ -155,7 +155,10 @@ class ReviewBase(BaseModel):
 
 
 class ReviewCreate(ReviewBase):
-    """Schema para crear reseña — exactamente uno de album_id o song_id es obligatorio"""
+    """
+    Schema para crear reseña — exactamente uno de
+    album_id o song_id es obligatorio
+    """
 
     album_id: Optional[int] = None
     song_id: Optional[int] = None

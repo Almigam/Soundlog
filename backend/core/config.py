@@ -40,7 +40,10 @@ class Settings(BaseSettings):
 
     # ─────────────────── DATABASE ───────────────────
     database_url: str = Field(
-        default="mssql+pyodbc://sa:YourPassword123!@localhost/soundlog?driver=ODBC+Driver+17+for+SQL+Server"
+        default=(
+            "mssql+pyodbc://sa:YourPassword123!@localhost/soundlog"
+            "?driver=ODBC+Driver+17+for+SQL+Server"
+        )
     )
     database_pool_size: int = Field(default=5, ge=1, le=20)
     database_max_overflow: int = Field(default=10, ge=0, le=50)
@@ -89,7 +92,8 @@ class Settings(BaseSettings):
             if os.getenv("ENVIRONMENT") == "production":
                 raise ValueError(
                     "SECRET_KEY debe ser una cadena fuerte en producción. "
-                    'Genera una con: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+                    "Genera una con: python -c "
+                    "\"import secrets; print(secrets.token_urlsafe(32))\""
                 )
             return secrets.token_urlsafe(32)
         if len(v) < 32:
@@ -108,11 +112,16 @@ class Settings(BaseSettings):
             origins = [o.strip() for o in v.split(",")]
             if os.getenv("ENVIRONMENT") == "production":
                 # Solo lanzamos error si NO hay Key Vault configurado.
-                # Si hay Key Vault, permitimos el arranque porque sabemos que se sobrescribirá.
-                if any("localhost" in o or "127.0.0.1" in o for o in origins):
+                # Si hay Key Vault, permitimos el arranque porque
+                # sabemos que se sobrescribirá.
+                has_local = any(
+                    "localhost" in o or "127.0.0.1" in o for o in origins
+                )
+                if has_local:
                     if not os.getenv("KEYVAULT_URL"):
                         raise ValueError(
-                            "No se pueden permitir localhost en producción sin un Key Vault configurado"
+                            "No se pueden permitir localhost en producción "
+                            "sin un Key Vault configurado"
                         )
             return ",".join(origins)
         return v
@@ -140,12 +149,17 @@ if settings.keyvault_url:
         from azure.identity import DefaultAzureCredential
         from azure.keyvault.secrets import SecretClient
 
-        print(f"📦 Conectando a Key Vault: {settings.keyvault_url}")
+        print(
+            f"📦 Conectando a Key Vault: {settings.keyvault_url}"
+        )
         # Reducir el número de reintentos para no bloquear el arranque
         credential = DefaultAzureCredential()
-        client = SecretClient(vault_url=settings.keyvault_url, credential=credential)
+        client = SecretClient(
+            vault_url=settings.keyvault_url,
+            credential=credential
+        )
 
-        # Mapeo de nombres de Key Vault (con guiones) a atributos de settings (con guiones bajos)
+        # Mapeo de nombres de Key Vault a atributos de settings
         kv_mapping = {
             "DATABASE-URL": "database_url",
             "SECRET-KEY": "secret_key",
@@ -167,11 +181,17 @@ if settings.keyvault_url:
                 print(f"⚠️ No se pudo cargar el secreto {kv_name}: {e}")
 
         if loaded_secrets:
-            print(f"✅ {len(loaded_secrets)} secretos cargados: {', '.join(loaded_secrets)}")
+            print(
+                f"✅ {len(loaded_secrets)} secretos cargados: "
+                f"{', '.join(loaded_secrets)}"
+            )
 
         # Validación crítica en producción (solo si no se cargó nada)
         if settings.is_production and "DATABASE-URL" not in loaded_secrets:
-            print("❌ ADVERTENCIA: DATABASE-URL no cargado. El backend podría fallar al conectar.")
+            print(
+                "❌ ADVERTENCIA: DATABASE-URL no cargado. "
+                "El backend podría fallar al conectar."
+            )
 
     except Exception as e:
         print(f"⚠️ Error conectando a Key Vault: {e}")
