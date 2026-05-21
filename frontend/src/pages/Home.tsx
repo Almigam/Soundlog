@@ -31,7 +31,7 @@ export function Home() {
           <div className="hero-inner">
             <h1>Descubre tu próxima obsesión musical.</h1>
             <p className="hero-lead">
-              La red social para amantes de la música. Reseña álbumes, 
+              La red social para amantes de la música. Reseña álbumes,
               sigue a tus artistas favoritos y comparte tus listas.
             </p>
             {!isAuthenticated && (
@@ -50,7 +50,7 @@ export function Home() {
             Álbumes populares esta semana
             <Link to="/albums" className="view-more">Ver todo</Link>
           </h2>
-          
+
           {loading ? (
             <div className="loading">Cargando...</div>
           ) : (

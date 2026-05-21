@@ -23,10 +23,10 @@ export function Navbar() {
           <Link to="/" className="navbar-logo" onClick={() => setIsMenuOpen(false)}>
             SOUNDLOG
           </Link>
-          
+
           {isAuthenticated && (
-            <button 
-              className="nav-search-btn" 
+            <button
+              className="nav-search-btn"
               onClick={() => setIsSearchOpen(true)}
               title="Buscar álbum para reseñar"
             >
@@ -35,7 +35,7 @@ export function Navbar() {
             </button>
           )}
         </div>
-        
+
         <button
           className="menu-toggle"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -50,7 +50,7 @@ export function Navbar() {
           <Link to="/songs" className="nav-link" onClick={() => setIsMenuOpen(false)}>
             Canciones
           </Link>
-          
+
           <div className="nav-divider" />
 
           {isAuthenticated ? (
@@ -75,9 +75,9 @@ export function Navbar() {
         </div>
       </div>
 
-      <SearchModal 
-        isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
       />
     </nav>
   );

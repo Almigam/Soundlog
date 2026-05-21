@@ -7,16 +7,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Crear engine para SQL Server con pyodbc
-# fast_executemany=True mejora el rendimiento en inserciones masivas
-engine = create_engine(
-    settings.database_url,
-    echo=settings.debug,
-    pool_pre_ping=True,  # verifica la conexión antes de usarla
-    pool_size=5,  # conexiones simultáneas en el pool
-    max_overflow=10,  # conexiones extra permitidas bajo carga
-    connect_args={"timeout": 30},  # timeout de conexión en segundos
-)
+# Crear engine (SQL Server en prod, SQLite en tests/CI)
+_engine_kwargs = {
+    "echo": settings.debug,
+    "pool_pre_ping": True,
+}
+if settings.database_url.startswith("sqlite"):
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    _engine_kwargs.update(
+        pool_size=5,
+        max_overflow=10,
+        connect_args={"timeout": 30},
+    )
+
+engine = create_engine(settings.database_url, **_engine_kwargs)
 
 # Crear sesión
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

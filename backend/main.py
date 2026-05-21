@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
-from routes import albums, auth, reviews, songs, users, external
+from routes import albums, auth, reviews, songs, users, external, admin
 import os
 
 # Cargar variables de ambiente
@@ -85,6 +85,7 @@ app.include_router(albums.router)  # /api/v1/albums
 app.include_router(songs.router)  # /api/v1/songs
 app.include_router(reviews.router)  # /api/v1/reviews
 app.include_router(external.router)  # /api/v1/external
+app.include_router(admin.router)  # /api/v1/admin
 
 
 # ──────────────────── HEALTH CHECKS ────────────────────
@@ -111,37 +112,40 @@ async def startup_event():
         await asyncio.to_thread(Base.metadata.create_all, bind=engine)
         logger.info(f"✅ Tablas verificadas: {list(Base.metadata.tables.keys())}")
 
-        # Migración manual: Añadir profile_picture_url si falta
-        logger.info("Ejecutando migraciones manuales...")
+        # Migración manual SQL Server (omitir en SQLite/tests)
+        db_url = str(engine.url)
+        if db_url.startswith("sqlite"):
+            logger.info("SQLite detectado: omitiendo migraciones SQL Server")
+        else:
+            logger.info("Ejecutando migraciones manuales...")
 
-        def run_migrations():
-            with engine.begin() as conn:
-                # 1. SQL Server: añadir columna profile_picture_url a users
-                conn.execute(text("""
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns
-                        WHERE object_id = OBJECT_ID('users')
-                        AND name = 'profile_picture_url'
-                    )
-                    BEGIN
-                        ALTER TABLE users ADD profile_picture_url NVARCHAR(500) NULL;
-                    END
-                """))
+            def run_migrations():
+                with engine.begin() as conn:
+                    conn.execute(text("""
+                        IF NOT EXISTS (
+                            SELECT * FROM sys.columns
+                            WHERE object_id = OBJECT_ID('users')
+                            AND name = 'profile_picture_url'
+                        )
+                        BEGIN
+                            ALTER TABLE users
+                            ADD profile_picture_url NVARCHAR(500) NULL;
+                        END
+                    """))
+                    conn.execute(text("""
+                        IF NOT EXISTS (
+                            SELECT * FROM sys.columns
+                            WHERE object_id = OBJECT_ID('albums')
+                            AND name = 'cover_image_url'
+                        )
+                        BEGIN
+                            ALTER TABLE albums
+                            ADD cover_image_url NVARCHAR(500) NULL;
+                        END
+                    """))
 
-                # 2. SQL Server: añadir columna cover_image_url a albums
-                conn.execute(text("""
-                    IF NOT EXISTS (
-                        SELECT * FROM sys.columns
-                        WHERE object_id = OBJECT_ID('albums')
-                        AND name = 'cover_image_url'
-                    )
-                    BEGIN
-                        ALTER TABLE albums ADD cover_image_url NVARCHAR(500) NULL;
-                    END
-                """))
-
-        await asyncio.to_thread(run_migrations)
-        logger.info("✅ Migraciones manuales finalizadas exitosamente")
+            await asyncio.to_thread(run_migrations)
+            logger.info("✅ Migraciones manuales finalizadas exitosamente")
 
     except Exception as e:
         logger.error(f"❌ ERROR CRÍTICO en base de datos: {e}", exc_info=True)
@@ -160,6 +164,28 @@ async def startup_event():
 
     # Ejecutar verificación en segundo plano
     asyncio.create_task(check_db())
+
+    # 4. Poblar catálogo de ejemplo si está vacío
+    async def seed_if_empty():
+        try:
+            from core.database import SessionLocal
+            from routes.admin import seed_catalog
+
+            db = SessionLocal()
+            try:
+                result = seed_catalog(db)
+                if result.get("seeded"):
+                    logger.info(
+                        "✅ Catálogo inicial: %s álbumes, %s canciones",
+                        result["albums_count"],
+                        result["songs_count"],
+                    )
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("No se pudo inicializar catálogo de ejemplo: %s", e)
+
+    asyncio.create_task(seed_if_empty())
 
 
 @app.get("/", tags=["root"])

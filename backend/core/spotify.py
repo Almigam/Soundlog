@@ -6,6 +6,11 @@ from core.config import settings
 class SpotifyService:
     def __init__(self):
         self.sp = None
+        self._ensure_client()
+
+    def _ensure_client(self):
+        if self.sp:
+            return
         if settings.spotify_client_id and settings.spotify_client_secret:
             auth_manager = SpotifyClientCredentials(
                 client_id=settings.spotify_client_id,
@@ -14,6 +19,7 @@ class SpotifyService:
             self.sp = spotipy.Spotify(auth_manager=auth_manager)
 
     def search_albums(self, query: str, limit: int = 10):
+        self._ensure_client()
         if not self.sp:
             return []
 
@@ -38,6 +44,7 @@ class SpotifyService:
         return albums
 
     def get_album_details(self, spotify_id: str):
+        self._ensure_client()
         if not self.sp:
             return None
 

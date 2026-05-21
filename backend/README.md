@@ -241,18 +241,79 @@ DELETE /api/v1/reviews/{review_id}  # Eliminar reseña
 - Audit logging completo
 - Sanitización de entrada
 
-## Testing
+## Testing y calidad (antes del push)
 
-### Ejecutar tests
+Repite localmente lo que hace GitHub Actions **antes** de hacer push a `desarrollo`.
+
+### 1. Entorno virtual (una vez)
 
 ```bash
-pytest
+cd backend
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+pip install -r requirements-dev.txt
+pip install pre-commit
 ```
+
+### 2. Comprobaciones rápidas (igual que CI)
+
+**Windows (PowerShell):**
+
+```powershell
+cd backend
+.\scripts\check.ps1
+```
+
+**Cualquier SO:**
+
+```bash
+cd backend
+python scripts/run_ci_checks.py
+```
+
+**Por separado:**
+
+```bash
+cd backend
+set DATABASE_URL=sqlite:///./test.db
+set SECRET_KEY=test-secret-key-only-for-ci-32chars!!
+set ENVIRONMENT=testing
+
+flake8 . --config=.flake8
+pytest tests/ -v --tb=short
+```
+
+### 3. Pre-commit (recomendado por el profesor)
+
+Instálalo **una vez** en la raíz del repo:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+A partir de ahí, en cada `git commit` se ejecutan flake8 y pytest automáticamente.
+Para probar sin commitear:
+
+```bash
+pre-commit run --all-files
+```
+
+### Tipos de tests en este proyecto
+
+| Tipo | Carpeta | Qué prueba |
+|------|---------|------------|
+| **Integración** | `tests/test_health.py` | API HTTP (`/`, `/health`, `/ready`) |
+| **Unitario** | `tests/test_seed.py` | Lógica de `seed_catalog` con SQLite en memoria |
 
 ### Con cobertura
 
 ```bash
-pytest --cov=core --cov=routes
+pytest tests/ -v --cov=. --cov-report=term-missing
 ```
 
 ## Deployment en Azure

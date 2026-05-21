@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { SpotifyAlbum, externalAPI } from '../api';
 
 interface SearchModalProps {
@@ -11,38 +12,74 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SpotifyAlbum[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const handleSearch = useCallback(async () => {
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setResults([]);
+      setError('');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const response = await externalAPI.search(trimmed);
+      setResults(response.data);
+      if (response.data.length === 0) {
+        setError('No se encontraron álbumes en Spotify para esa búsqueda.');
+      }
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ detail?: string }>;
+      const status = axiosErr.response?.status;
+      const detail = axiosErr.response?.data?.detail;
+
+      if (status === 503) {
+        setError(
+          detail ||
+            'Spotify no está configurado en el servidor. Contacta al administrador.'
+        );
+      } else if (status === 401) {
+        setError('Sesión expirada. Vuelve a iniciar sesión.');
+      } else {
+        setError(detail || 'Error al buscar álbumes. Inténtalo de nuevo.');
+      }
+      setResults([]);
+      console.error('Search failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [query]);
+
   useEffect(() => {
+    if (!isOpen) return;
+
     const timer = setTimeout(() => {
       if (query.trim().length > 2) {
         handleSearch();
+      } else {
+        setResults([]);
+        setError('');
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [query]);
-
-  const handleSearch = async () => {
-    setLoading(true);
-    try {
-      const response = await externalAPI.search(query);
-      setResults(response.data);
-    } catch (error) {
-      console.error('Search failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [query, isOpen, handleSearch]);
 
   const handleImport = async (spotifyId: string) => {
     try {
       const response = await externalAPI.import(spotifyId);
       onClose();
       navigate(`/albums/${response.data.id}`);
-    } catch (error) {
-      console.error('Import failed:', error);
-      alert('Error al importar el álbum. Asegúrate de que el backend tenga las credenciales de Spotify.');
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ detail?: string }>;
+      console.error('Import failed:', err);
+      alert(
+        axiosErr.response?.data?.detail ||
+          'Error al importar el álbum. Comprueba las credenciales de Spotify en el backend.'
+      );
     }
   };
 
@@ -64,7 +101,10 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
         <div className="search-results">
           {loading && <div className="loading-small">Buscando en Spotify...</div>}
-          {!loading && results.map(album => (
+          {error && !loading && (
+            <div className="search-error-msg">{error}</div>
+          )}
+          {!loading && !error && results.map(album => (
             <div key={album.id} className="search-result-item" onClick={() => handleImport(album.id)}>
               <div className="result-cover">
                 {album.cover_image_url ? (
@@ -79,8 +119,11 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               </div>
             </div>
           ))}
-          {!loading && query.length > 2 && results.length === 0 && (
+          {!loading && !error && query.trim().length > 2 && results.length === 0 && (
             <div className="no-results-msg">No se encontraron álbumes.</div>
+          )}
+          {!loading && query.trim().length <= 2 && (
+            <div className="no-results-msg">Escribe al menos 3 caracteres para buscar.</div>
           )}
         </div>
       </div>
@@ -169,10 +212,16 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
           font-size: 0.85rem;
           color: var(--text-dim);
         }
-        .loading-small {
+        .loading-small, .no-results-msg {
           text-align: center;
           padding: 2rem;
           color: var(--text-dim);
+        }
+        .search-error-msg {
+          text-align: center;
+          padding: 1.5rem;
+          color: #ff6b6b;
+          line-height: 1.5;
         }
       `}</style>
     </div>

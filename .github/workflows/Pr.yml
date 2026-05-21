@@ -62,13 +62,11 @@ jobs:
 
       - name: Instalar dependencias
         working-directory: backend
-        run: |
-          pip install -r requirements.txt
-          pip install flake8 pytest pytest-asyncio httpx
+        run: pip install -r requirements-dev.txt
 
       - name: Flake8
         working-directory: backend
-        run: flake8 . --max-line-length=120 --exclude=__pycache__,.venv,logs
+        run: flake8 . --config=.flake8
 
       - name: Tests
         working-directory: backend
@@ -76,9 +74,8 @@ jobs:
           DATABASE_URL: "sqlite:///./test.db"
           SECRET_KEY: "test-secret-key-only-for-ci-32chars!!"
           ENVIRONMENT: "testing"
-        run: |
-          pytest tests/ -v --tb=short \
-            || echo "⚠️ No hay tests todavía"
+          KEYVAULT_URL: ""
+        run: pytest tests/ -v --tb=short
 
   # ──────────────── TERRAFORM ────────────────
   terraform-plan:

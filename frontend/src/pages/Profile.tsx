@@ -87,8 +87,8 @@ export function Profile() {
 
   const renderAvatar = () => {
     if (user.profile_picture_url) {
-      const url = user.profile_picture_url.startsWith('http') 
-        ? user.profile_picture_url 
+      const url = user.profile_picture_url.startsWith('http')
+        ? user.profile_picture_url
         : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${user.profile_picture_url}`;
       return <img src={url} alt={user.username} className="avatar-img" />;
     }
@@ -96,7 +96,7 @@ export function Profile() {
   };
 
   const totalReviews = reviews.length;
-  const avgRating = totalReviews > 0 
+  const avgRating = totalReviews > 0
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1)
     : '0';
 
@@ -119,14 +119,14 @@ export function Profile() {
               {isEditing ? 'Cancelar' : 'Editar Perfil'}
             </button>
           </div>
-          
+
           {isEditing ? (
             <form onSubmit={handleUpdateProfile} className="edit-profile-form">
               <div className="form-group">
                 <label>Nombre Completo</label>
-                <input 
-                  type="text" 
-                  value={editForm.full_name} 
+                <input
+                  type="text"
+                  value={editForm.full_name}
                   onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
                   placeholder="Tu nombre real"
                 />
@@ -157,7 +157,7 @@ export function Profile() {
 
       <section className="my-activity">
         <h2 className="section-title">Actividad Reciente</h2>
-        
+
         {loading ? (
           <div className="loading">Cargando tu diario...</div>
         ) : reviews.length > 0 ? (

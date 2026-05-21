@@ -11,4 +11,3 @@ terraform {
     client_id            = "196dbf1d-e63c-4241-af3d-00cbf4b51a06" # clientId de la Managed Identity
   }
 }
-

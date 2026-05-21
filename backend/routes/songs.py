@@ -38,10 +38,14 @@ async def get_song(song_id: int, db: Session = Depends(get_db)):
     return song
 
 
-@router.post("/", response_model=SongResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=SongResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)],
+)
 async def create_song(
     song: SongCreate,
-    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if song.album_id is not None:
@@ -57,11 +61,14 @@ async def create_song(
     return db_song
 
 
-@router.patch("/{song_id}", response_model=SongResponse)
+@router.patch(
+    "/{song_id}",
+    response_model=SongResponse,
+    dependencies=[Depends(get_current_user)],
+)
 async def update_song(
     song_id: int,
     updates: SongUpdate,
-    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     song = db.query(Song).filter(Song.id == song_id).first()
@@ -76,10 +83,13 @@ async def update_song(
     return song
 
 
-@router.delete("/{song_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{song_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_user)],
+)
 async def delete_song(
     song_id: int,
-    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     song = db.query(Song).filter(Song.id == song_id).first()

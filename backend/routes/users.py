@@ -2,16 +2,17 @@
 Rutas de Usuarios
 """
 
+import logging
+
+from core.blob_storage import blob_storage
 from core.database import get_db
 from core.models import User
 from core.schemas import UserResponse, UserUpdate
 from core.security import get_current_user
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
-import shutil
-import os
-import uuid
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
@@ -19,46 +20,52 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 async def upload_avatar(
     file: UploadFile = File(...),
     current_user_id: int = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Subir foto de perfil localmente"""
-    # 1. Validar extensión
-    extension = os.path.splitext(file.filename)[1].lower()
-    if extension not in [".jpg", ".jpeg", ".png", ".webp"]:
+    """Subir foto de perfil a Azure Blob (o disco local en desarrollo)."""
+    if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Formato de imagen no soportado"
+            detail="Nombre de archivo requerido",
         )
 
-    # 2. Generar nombre único
-    filename = f"{uuid.uuid4()}{extension}"
-    filepath = os.path.join("uploads", "avatars", filename)
-
-    # 3. Guardar archivo
     try:
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Archivo vacío",
+            )
+        picture_url = blob_storage.upload_profile_picture(
+            content, file.filename
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
+        logger.error("Error subiendo avatar: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al guardar archivo: {str(e)}"
+            detail=f"Error al guardar imagen: {str(e)}",
         )
 
-    # 4. Actualizar usuario en BD
     user = db.query(User).filter(User.id == current_user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado",
+        )
 
-    # Borrar anterior si existe y es local
-    if user.profile_picture_url and user.profile_picture_url.startswith("/uploads/"):
-        old_path = user.profile_picture_url.lstrip("/")
-        if os.path.exists(old_path):
-            os.remove(old_path)
+    if user.profile_picture_url:
+        blob_storage.delete_profile_picture(user.profile_picture_url)
 
-    relative_url = f"/uploads/avatars/{filename}"
-    user.profile_picture_url = relative_url
+    user.profile_picture_url = picture_url
     db.commit()
     db.refresh(user)
 
-    return {"profile_picture_url": relative_url}
+    return {"profile_picture_url": picture_url}
 
 
 @router.get("/me", response_model=UserResponse)
@@ -98,7 +105,6 @@ async def update_my_profile(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         )
 
-    # Solo actualizar los campos que vienen en el request
     update_data = updates.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(user, field, value)
