@@ -102,15 +102,36 @@ async def startup_event():
     except Exception as e:
         logger.error(f"ERROR importando modelos: {e}", exc_info=True)
 
-    # 2. Intentar crear tablas (crítico para el primer despliegue)
+    # 2. Intentar crear tablas e incluir migraciones manuales
     try:
         from core.database import Base, engine
+        from sqlalchemy import text
         logger.info("Verificando/Creando tablas en la base de datos...")
         # create_all es síncrono, lo ejecutamos en un thread aparte para no bloquear
         await asyncio.to_thread(Base.metadata.create_all, bind=engine)
-        logger.info(f"✅ Tablas verificadas/creadas: {list(Base.metadata.tables.keys())}")
+        logger.info(f"✅ Tablas verificadas: {list(Base.metadata.tables.keys())}")
+
+        # Migración manual: Añadir profile_picture_url si falta
+        logger.info("Ejecutando migraciones manuales...")
+
+        def run_migrations(conn):
+            # SQL Server: añadir columna profile_picture_url
+            conn.execute(text("""
+                IF NOT EXISTS (
+                    SELECT * FROM sys.columns 
+                    WHERE object_id = OBJECT_ID('users') AND name = 'profile_picture_url'
+                )
+                BEGIN
+                    ALTER TABLE users ADD profile_picture_url NVARCHAR(500) NULL;
+                END
+            """))
+            conn.commit()
+
+        await asyncio.to_thread(engine.connect().run_callable, run_migrations)
+        logger.info("✅ Migraciones manuales finalizadas exitosamente")
+
     except Exception as e:
-        logger.error(f"❌ ERROR CRÍTICO creando tablas: {e}", exc_info=True)
+        logger.error(f"❌ ERROR CRÍTICO en base de datos: {e}", exc_info=True)
 
     # 3. Verificar conectividad a BD
     async def check_db():
