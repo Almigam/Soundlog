@@ -5,6 +5,7 @@ Logging mejorado con rotación
 import logging
 import logging.handlers
 from pathlib import Path
+from core.config import settings
 
 
 def setup_logging(
@@ -56,7 +57,9 @@ def setup_logging(
         try:
             from azure.monitor.opentelemetry import configure_azure_monitor
             configure_azure_monitor(
-                connection_string=settings.applicationinsights_connection_string,
+                connection_string=(
+                    settings.applicationinsights_connection_string
+                ),
                 logger_name=settings.app_name,
             )
             logging.info("✅ Azure Monitor configurado exitosamente")
