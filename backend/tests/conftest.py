@@ -3,6 +3,13 @@ Configuración compartida de pytest (misma que GitHub Actions).
 """
 
 import os
+import sys
+from pathlib import Path
+
+# Asegurar imports de core/ y routes/ en CI (Linux) y local
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent
+if str(_BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_ROOT))
 
 import pytest
 from sqlalchemy import create_engine
