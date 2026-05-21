@@ -51,6 +51,18 @@ def setup_logging(
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
+    # Configurar Azure Application Insights si hay connection string
+    if settings.applicationinsights_connection_string:
+        try:
+            from azure.monitor.opentelemetry import configure_azure_monitor
+            configure_azure_monitor(
+                connection_string=settings.applicationinsights_connection_string,
+                logger_name=settings.app_name,
+            )
+            logging.info("✅ Azure Monitor configurado exitosamente")
+        except Exception as e:
+            logging.error(f"⚠️ Error configurando Azure Monitor: {e}")
+
     return logger
 
 

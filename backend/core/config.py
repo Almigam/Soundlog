@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     keyvault_url: str = Field(default="")
     storage_account_name: str = Field(default="")
     storage_account_key: str = Field(default="")
+    applicationinsights_connection_string: str = Field(default="")
 
     # ─────────────────── SPOTIFY ───────────────────
     spotify_client_id: str = Field(default="")
@@ -167,6 +168,7 @@ if settings.keyvault_url:
             "SPOTIFY-CLIENT-ID": "spotify_client_id",
             "SPOTIFY-CLIENT-SECRET": "spotify_client_secret",
             "ALLOWED-ORIGINS": "allowed_origins",
+            "APPLICATION-INSIGHTS-CONNECTION-STRING": "applicationinsights_connection_string",
         }
 
         loaded_secrets = []

@@ -118,6 +118,35 @@ resource "azurerm_mssql_database" "main" {
 }
 
 # ──────────────────────────────────────────────
+#  MONITORING — Log Analytics + App Insights
+# ──────────────────────────────────────────────
+resource "azurerm_log_analytics_workspace" "main" {
+  name                = "soundlog-law"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+resource "azurerm_application_insights" "main" {
+  name                = "soundlog-app-insights"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  workspace_id        = azurerm_log_analytics_workspace.main.id
+  application_type    = "web"
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+# ──────────────────────────────────────────────
 #  APP SERVICE — Backend FastAPI
 # ──────────────────────────────────────────────
 resource "azurerm_service_plan" "backend_plan" {
@@ -162,6 +191,7 @@ resource "azurerm_linux_web_app" "backend" {
     "SECRET_KEY"                     = var.jwt_secret_key # Fallback para evitar crash en validación
     "PYTHON_ENABLE_GUNICORN_MULTI_HTTP_SERVER_CONFIG" = "true"
     "WEBSITES_CONTAINER_START_TIME_LIMIT" = "600"
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
   }
 
   logs {
@@ -322,6 +352,23 @@ resource "azurerm_key_vault_secret" "spotify_secret" {
 # ──────────────────────────────────────────────
 #  PERMISOS — Managed Identity → Blob Storage
 # ──────────────────────────────────────────────
+
+# Connection string de Application Insights — para backend y frontend
+resource "azurerm_key_vault_secret" "app_insights_connection_string" {
+  name         = "APPLICATION-INSIGHTS-CONNECTION-STRING"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = azurerm_application_insights.main.connection_string
+
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
 
 # La Managed Identity de GitHub Actions necesita poder
 # subir archivos al Blob Storage del frontend
