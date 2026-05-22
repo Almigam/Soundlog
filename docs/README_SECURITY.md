@@ -51,16 +51,16 @@ Después: Enterprise-Grade ████████ 95%
 ```
 ✅ frontend/src/api/client.ts
    └─ Axios client con refresh token automático
-   
+
 ✅ frontend/src/context/AuthContext.tsx
    └─ Auth context con verificación y auto-refresh
-   
+
 ✅ backend/.env.example
    └─ 180+ líneas con explicaciones de seguridad
-   
+
 ✅ frontend/.env.example
    └─ Configuración de frontend documentada
-   
+
 ✅ (Anteriormente completado)
    ├─ backend/core/config.py → Validaciones
    ├─ backend/core/security.py → JWT

@@ -42,6 +42,12 @@ export function SongsList() {
         <div className="loading">Cargando canciones...</div>
       ) : (
         <>
+          {songs.length === 0 ? (
+            <div className="empty-catalog-msg">
+              <p>No hay canciones todavía.</p>
+              <p>Importa un álbum desde Spotify con <strong>LOG ALBUM</strong> para añadir canciones.</p>
+            </div>
+          ) : (
           <div className="songs-table">
             <table>
               <thead>
@@ -66,6 +72,7 @@ export function SongsList() {
               </tbody>
             </table>
           </div>
+          )}
 
           <div className="pagination">
             <button

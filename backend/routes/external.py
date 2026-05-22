@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from core.spotify import spotify_service
 from core.security import get_current_user
@@ -7,6 +9,7 @@ from core.models import Album, Song
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/external", tags=["external"])
 
 
@@ -19,32 +22,46 @@ class SpotifyAlbumSearchResponse(BaseModel):
     external_url: str
 
 
-@router.get("/search", response_model=List[SpotifyAlbumSearchResponse])
-async def search_spotify_albums(
-    q: str,
-    current_user_id: int = Depends(get_current_user)
-):
+@router.get(
+    "/search",
+    response_model=List[SpotifyAlbumSearchResponse],
+    dependencies=[Depends(get_current_user)],
+)
+async def search_spotify_albums(q: str):
     """Buscar álbumes en Spotify"""
+    query = (q or "").strip()
+    if len(query) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La búsqueda debe tener al menos 2 caracteres",
+        )
+
+    if not spotify_service.sp:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Servicio de Spotify no configurado. "
+                "Configura SPOTIFY_CLIENT_ID y SPOTIFY_CLIENT_SECRET."
+            ),
+        )
+
     try:
-        results = spotify_service.search_albums(q)
-        if not results and not spotify_service.sp:
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "Servicio de Spotify no configurado. "
-                    "Añade SPOTIFY_CLIENT_ID y SECRET."
-                )
-            )
+        results = spotify_service.search_albums(query)
         return results
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error("Error buscando en Spotify: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/import/{spotify_id}")
+@router.post(
+    "/import/{spotify_id}",
+    dependencies=[Depends(get_current_user)],
+)
 async def import_spotify_album(
     spotify_id: str,
-    current_user_id: int = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Importar un álbum y sus canciones desde Spotify a nuestra BD"""
     # 1. Obtener detalles de Spotify

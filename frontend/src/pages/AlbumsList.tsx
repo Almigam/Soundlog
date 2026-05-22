@@ -43,11 +43,18 @@ export function AlbumsList() {
         <div className="loading">Cargando álbumes...</div>
       ) : (
         <>
+          {albums.length === 0 ? (
+            <div className="empty-catalog-msg">
+              <p>No hay álbumes todavía.</p>
+              <p>Usa <strong>LOG ALBUM</strong> en la barra superior para buscar en Spotify e importar uno.</p>
+            </div>
+          ) : (
           <div className="poster-grid">
             {albums.map((album) => (
               <AlbumCard key={album.id} album={album} />
             ))}
           </div>
+          )}
 
           <div className="pagination">
             <button

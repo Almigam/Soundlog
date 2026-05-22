@@ -1,3 +1,14 @@
+.empty-catalog-msg {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.empty-catalog-msg strong {
+  color: var(--orange);
+}
+
 .songs-header-simple {
   margin-bottom: 2rem;
 }

@@ -36,13 +36,11 @@ jobs:
 
       - name: Instalar dependencias
         working-directory: backend
-        run: |
-          pip install -r requirements.txt
-          pip install flake8 pytest pytest-asyncio httpx pytest-cov
+        run: pip install -r requirements-dev.txt
 
       - name: Flake8 — estilo
         working-directory: backend
-        run: flake8 . --max-line-length=120 --exclude=__pycache__,.venv,logs
+        run: flake8 . --config=.flake8
 
       - name: Tests con cobertura
         working-directory: backend
@@ -50,13 +48,13 @@ jobs:
           DATABASE_URL: "sqlite:///./test.db"
           SECRET_KEY: "test-secret-key-only-for-ci-32chars!!"
           ENVIRONMENT: "testing"
+          KEYVAULT_URL: ""
         run: |
           pytest tests/ -v \
             --tb=short \
             --cov=. \
             --cov-report=term-missing \
-            --cov-fail-under=0 \
-            || echo "⚠️ No hay tests todavía — crea tests/test_health.py"
+            --cov-fail-under=0
 
   # ──────────────── DEPLOY ────────────────
   # DESCOMENTA ESTE JOB cuando tengas el App Service desplegado con Terraform
@@ -64,7 +62,7 @@ jobs:
   # añadido como secret AZURE_WEBAPP_PUBLISH_PROFILE en GitHub.
 
   deploy:
-    
+
     name: Deploy a Azure App Service
     runs-on: ubuntu-latest
     needs: test           # Solo despliega si los tests pasan

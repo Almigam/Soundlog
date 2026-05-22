@@ -32,10 +32,14 @@ async def get_album(album_id: int, db: Session = Depends(get_db)):
     return album
 
 
-@router.post("/", response_model=AlbumResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=AlbumResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)],
+)
 async def create_album(
     album: AlbumCreate,
-    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Crear un nuevo álbum — requiere autenticación"""
@@ -46,11 +50,14 @@ async def create_album(
     return db_album
 
 
-@router.patch("/{album_id}", response_model=AlbumResponse)
+@router.patch(
+    "/{album_id}",
+    response_model=AlbumResponse,
+    dependencies=[Depends(get_current_user)],
+)
 async def update_album(
     album_id: int,
     updates: AlbumUpdate,
-    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Actualizar un álbum — requiere autenticación"""
@@ -69,10 +76,13 @@ async def update_album(
     return album
 
 
-@router.delete("/{album_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{album_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_user)],
+)
 async def delete_album(
     album_id: int,
-    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Eliminar un álbum — requiere autenticación"""

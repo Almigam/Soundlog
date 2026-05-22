@@ -184,6 +184,7 @@ resource "azurerm_linux_web_app" "backend" {
 
   app_settings = {
     "KEYVAULT_URL"                   = azurerm_key_vault.main.vault_uri
+    "STORAGE_ACCOUNT_NAME"           = azurerm_storage_account.images.name
     "ENVIRONMENT"                    = "production"
     "WEBSITES_PORT"                  = "8000"
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
@@ -296,6 +297,22 @@ resource "azurerm_key_vault_secret" "storage_key" {
   name         = "STORAGE-ACCOUNT-KEY"
   key_vault_id = azurerm_key_vault.main.id
   value        = azurerm_storage_account.images.primary_access_key
+
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+resource "azurerm_key_vault_secret" "storage_account_name" {
+  name         = "STORAGE-ACCOUNT-NAME"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = azurerm_storage_account.images.name
 
   depends_on = [
     azurerm_key_vault.main,

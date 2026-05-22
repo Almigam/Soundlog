@@ -30,7 +30,7 @@ export function Login() {
       const loginParams = new URLSearchParams();
       loginParams.append('username', formData.username);
       loginParams.append('password', formData.password);
-      
+
       const loginResponse = await authAPI.login(loginParams as any);
       // Para obtener los datos del usuario, hacemos un call adicional
       // Por ahora, guardamos datos mínimos

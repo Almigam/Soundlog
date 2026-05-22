@@ -59,10 +59,10 @@ export const authAPI = {
     api.post<LoginResponse>('/api/v1/auth/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     }),
-  
+
   register: (userData: any) =>
     api.post<User>('/api/v1/auth/register', userData),
-  
+
   getMe: () =>
     api.get<User>('/api/v1/users/me'),
 };
@@ -71,7 +71,7 @@ export const authAPI = {
 export const usersAPI = {
   updateProfile: (userData: Partial<User>) =>
     api.patch<User>('/api/v1/users/me', userData),
-  
+
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -83,10 +83,10 @@ export const usersAPI = {
 export const albumsAPI = {
   getAll: (skip = 0, limit = 100) =>
     api.get<Album[]>('/api/v1/albums/', { params: { skip, limit } }),
-  
+
   getById: (id: number) =>
     api.get<Album>(`/api/v1/albums/${id}`),
-  
+
   create: (albumData: any) =>
     api.post<Album>('/api/v1/albums/', albumData),
 };
@@ -95,7 +95,7 @@ export const albumsAPI = {
 export const songsAPI = {
   getAll: (skip = 0, limit = 100, albumId?: number) =>
     api.get<Song[]>('/api/v1/songs/', { params: { skip, limit, album_id: albumId } }),
-  
+
   getById: (id: number) =>
     api.get<Song>(`/api/v1/songs/${id}`),
 };
@@ -104,13 +104,13 @@ export const songsAPI = {
 export const reviewsAPI = {
   getAll: (skip = 0, limit = 100) =>
     api.get<Review[]>('/api/v1/reviews/', { params: { skip, limit } }),
-  
+
   getAlbumReviews: (albumId: number) =>
     api.get<Review[]>(`/api/v1/reviews/album/${albumId}`),
-  
+
   getMyReviews: () =>
     api.get<Review[]>('/api/v1/reviews/me'),
-  
+
   create: (rating: number, albumId?: number, songId?: number, comment?: string) =>
     api.post<Review>('/api/v1/reviews/', {
       rating,

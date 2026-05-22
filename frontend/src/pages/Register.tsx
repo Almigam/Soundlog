@@ -53,11 +53,11 @@ export function Register() {
       const loginParams = new URLSearchParams();
       loginParams.append('username', formData.username);
       loginParams.append('password', formData.password);
-      
+
       const loginResponse = await authAPI.login(loginParams as any);
-      
+
       setSuccess('¡Registro exitoso! Iniciando sesión...');
-      
+
       setTimeout(() => {
         login(response.data, loginResponse.data.access_token);
         navigate('/');

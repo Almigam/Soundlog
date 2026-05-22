@@ -26,7 +26,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  
+
   // Headers de seguridad adicionales
   if (config.headers) {
     config.headers['X-Requested-With'] = 'XMLHttpRequest';
@@ -34,7 +34,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
       delete config.headers['Content-Type'];
     }
   }
-  
+
   return config;
 });
 
@@ -58,7 +58,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       const refreshToken = localStorage.getItem('refresh_token');
-      
+
       if (refreshToken) {
         try {
           // Intentar renovar token

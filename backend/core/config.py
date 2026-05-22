@@ -6,8 +6,11 @@ import os
 import secrets
 from typing import List
 
+from dotenv import load_dotenv
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -70,6 +73,8 @@ class Settings(BaseSettings):
     keyvault_url: str = Field(default="")
     storage_account_name: str = Field(default="")
     storage_account_key: str = Field(default="")
+    profile_pictures_container: str = Field(default="profile-pictures")
+    album_covers_container: str = Field(default="album-covers")
     applicationinsights_connection_string: str = Field(default="")
 
     # ─────────────────── SPOTIFY ───────────────────
@@ -165,6 +170,7 @@ if settings.keyvault_url:
             "DATABASE-URL": "database_url",
             "SECRET-KEY": "secret_key",
             "STORAGE-ACCOUNT-KEY": "storage_account_key",
+            "STORAGE-ACCOUNT-NAME": "storage_account_name",
             "SPOTIFY-CLIENT-ID": "spotify_client_id",
             "SPOTIFY-CLIENT-SECRET": "spotify_client_secret",
             "ALLOWED-ORIGINS": "allowed_origins",
