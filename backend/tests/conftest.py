@@ -1,19 +1,18 @@
+import os
+import sys
+import pytest
+from pathlib import Path
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 """
 Configuración compartida de pytest (misma que GitHub Actions).
 """
-
-import os
-import sys
-from pathlib import Path
-
 # Asegurar imports de core/ y routes/ en CI (Linux) y local
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
+
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-only-for-ci-32chars!!")
