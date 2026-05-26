@@ -1,5 +1,5 @@
 import { createContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { User } from '../api';
+import { User, authAPI } from '../api';
 
 interface AuthContextType {
   user: User | null;
@@ -7,10 +7,13 @@ interface AuthContextType {
   isLoading: boolean;
   login: (user: User, token: string, refreshToken?: string) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   refreshToken: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -20,8 +23,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+
+    const response = await authAPI.getMe();
+    setUser(response.data);
+    localStorage.setItem('user', JSON.stringify(response.data));
+  }, []);
+
   useEffect(() => {
-    // Verificar autenticación al iniciar
     const verifyAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (!token) {
@@ -30,48 +48,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        // Verificar que el token sea válido
-        const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/verify`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(`${API_BASE}/api/v1/auth/verify`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (response.ok) {
-          // Token válido
-          const stored = localStorage.getItem('user');
-          if (stored) {
-            setUser(JSON.parse(stored));
-          }
+          await refreshUser();
         } else if (response.status === 401) {
-          // Token expirado, intentar refresh
-          const refreshToken = localStorage.getItem('refresh_token');
-          if (refreshToken) {
-            try {
-              const refreshResponse = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/refresh`,
-                {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${refreshToken}`,
-                  },
-                }
-              );
+          const refreshTokenValue = localStorage.getItem('refresh_token');
+          if (refreshTokenValue) {
+            const refreshResponse = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${refreshTokenValue}` },
+            });
 
-              if (refreshResponse.ok) {
-                const data = await refreshResponse.json();
-                localStorage.setItem('access_token', data.access_token);
-                const stored = localStorage.getItem('user');
-                if (stored) {
-                  setUser(JSON.parse(stored));
-                }
-              } else {
-                logout();
-              }
-            } catch {
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json();
+              localStorage.setItem('access_token', data.access_token);
+              await refreshUser();
+            } else {
               logout();
             }
           } else {
@@ -86,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     verifyAuth();
-  }, []);
+  }, [logout, refreshUser]);
 
   const login = useCallback((userData: User, token: string, refreshToken?: string) => {
     setUser(userData);
@@ -97,13 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-  }, []);
-
   const refreshToken = useCallback(async () => {
     const token = localStorage.getItem('refresh_token');
     if (!token) {
@@ -111,32 +99,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('No refresh token available');
     }
 
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/refresh`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (!response.ok) {
-        logout();
-        throw new Error('Refresh failed');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('access_token', data.access_token);
-    } catch (error) {
+    if (!response.ok) {
       logout();
-      throw error;
+      throw new Error('Refresh failed');
     }
-  }, []);
+
+    const data = await response.json();
+    localStorage.setItem('access_token', data.access_token);
+  }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, refreshToken }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        logout,
+        refreshUser,
+        refreshToken,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

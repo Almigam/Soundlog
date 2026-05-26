@@ -22,6 +22,7 @@ export interface Album {
   release_year?: number;
   description?: string;
   cover_image_url?: string;
+  tags?: string;
   created_at: string;
 }
 
@@ -76,7 +77,19 @@ export const usersAPI = {
     const formData = new FormData();
     formData.append('file', file);
     return api.post<{ profile_picture_url: string }>('/api/v1/users/me/avatar', formData);
-  }
+  },
+
+  search: (q: string) =>
+    api.get<User[]>('/api/v1/users/search', { params: { q } }),
+
+  follow: (username: string) =>
+    api.post<{ message: string }>(`/api/v1/users/${username}/follow`),
+
+  unfollow: (username: string) =>
+    api.delete(`/api/v1/users/${username}/follow`),
+
+  getFollowersCount: (username: string) =>
+    api.get<{ followers_count: number }>(`/api/v1/users/${username}/followers/count`),
 };
 
 // Albums API
@@ -118,6 +131,15 @@ export const reviewsAPI = {
       song_id: songId,
       comment,
     }),
+
+  update: (reviewId: number, data: { rating?: number; comment?: string }) =>
+    api.patch<Review>(`/api/v1/reviews/${reviewId}`, data),
+
+  delete: (reviewId: number) =>
+    api.delete(`/api/v1/reviews/${reviewId}`),
+
+  getSongReviews: (songId: number) =>
+    api.get<Review[]>(`/api/v1/reviews/song/${songId}`),
 };
 
 // External API (Spotify)

@@ -2,27 +2,38 @@ import { useState, useEffect } from 'react';
 import { Review, reviewsAPI, usersAPI } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import '../styles/Profile.css';
 
 export function Profile() {
-  const { user, logout, login } = useAuth();
+  const { user, logout, login, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    full_name: user?.full_name || '',
-  });
+  const [editForm, setEditForm] = useState({ full_name: user?.full_name || '' });
   const [updateLoading, setUpdateLoading] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
+  const [editReviewForm, setEditReviewForm] = useState({ rating: 5, comment: '' });
 
   useEffect(() => {
     loadMyReviews();
     if (user) {
-      setEditForm({
-        full_name: user.full_name || '',
-      });
+      setEditForm({ full_name: user.full_name || '' });
+      loadFollowers();
     }
   }, [user]);
+
+  const loadFollowers = async () => {
+    if (!user) return;
+    try {
+      const res = await usersAPI.getFollowersCount(user.username);
+      setFollowersCount(res.data.followers_count);
+    } catch {
+      setFollowersCount(0);
+    }
+  };
 
   const loadMyReviews = async () => {
     try {
@@ -40,14 +51,10 @@ export function Profile() {
     setUpdateLoading(true);
     try {
       const response = await usersAPI.updateProfile(editForm);
-      // Update local storage and context
       const token = localStorage.getItem('access_token');
-      if (token) {
-        login(response.data, token);
-      }
+      if (token) login(response.data, token);
       setIsEditing(false);
-    } catch (err) {
-      console.error('Error al actualizar perfil', err);
+    } catch {
       alert('Error al actualizar perfil');
     } finally {
       setUpdateLoading(false);
@@ -60,20 +67,32 @@ export function Profile() {
 
     setUpdateLoading(true);
     try {
-      const response = await usersAPI.uploadAvatar(file);
-      // Actualizar el usuario en el contexto
-      if (user) {
-        const updatedUser = { ...user, profile_picture_url: response.data.profile_picture_url };
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          login(updatedUser, token);
-        }
-      }
-    } catch (err) {
-      console.error('Error al subir avatar', err);
+      await usersAPI.uploadAvatar(file);
+      await refreshUser();
+    } catch {
       alert('Error al subir la imagen');
     } finally {
       setUpdateLoading(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    if (!confirm('¿Eliminar esta reseña?')) return;
+    try {
+      await reviewsAPI.delete(reviewId);
+      loadMyReviews();
+    } catch {
+      alert('No se pudo eliminar la reseña');
+    }
+  };
+
+  const handleSaveReviewEdit = async (reviewId: number) => {
+    try {
+      await reviewsAPI.update(reviewId, editReviewForm);
+      setEditingReviewId(null);
+      loadMyReviews();
+    } catch {
+      alert('No se pudo actualizar la reseña');
     }
   };
 
@@ -85,26 +104,22 @@ export function Profile() {
 
   if (!user) return null;
 
-  const renderAvatar = () => {
-    if (user.profile_picture_url) {
-      const url = user.profile_picture_url.startsWith('http')
-        ? user.profile_picture_url
-        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}${user.profile_picture_url}`;
-      return <img src={url} alt={user.username} className="avatar-img" />;
-    }
-    return user.username[0]?.toUpperCase();
-  };
-
+  const avatarUrl = resolveMediaUrl(user.profile_picture_url);
   const totalReviews = reviews.length;
-  const avgRating = totalReviews > 0
-    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1)
-    : '0';
+  const avgRating =
+    totalReviews > 0
+      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1)
+      : '0';
 
   return (
     <div className="profile-container">
       <header className="profile-header-new">
         <div className="profile-avatar-large">
-          {renderAvatar()}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={user.username} className="avatar-img" />
+          ) : (
+            user.username[0]?.toUpperCase()
+          )}
           {isEditing && (
             <label className="avatar-upload-overlay">
               <input type="file" onChange={handleFileChange} accept="image/*" hidden />
@@ -127,7 +142,7 @@ export function Profile() {
                 <input
                   type="text"
                   value={editForm.full_name}
-                  onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
                   placeholder="Tu nombre real"
                 />
               </div>
@@ -147,7 +162,7 @@ export function Profile() {
                 <span className="stat-lbl">Promedio</span>
               </div>
               <div className="stat-item">
-                <span className="stat-num">0</span>
+                <span className="stat-num">{followersCount}</span>
                 <span className="stat-lbl">Seguidores</span>
               </div>
             </div>
@@ -167,12 +182,80 @@ export function Profile() {
                 <div className="review-content-main">
                   <div className="review-meta-top">
                     <span className="rating-pill">{review.rating} ★</span>
-                    <span className="review-date">{new Date(review.created_at).toLocaleDateString()}</span>
+                    <span className="review-date">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </span>
                   </div>
-                  {review.comment ? (
-                    <p className="review-body-text">{review.comment}</p>
+                  <p className="review-type-label">
+                    {review.album_id
+                      ? `Álbum #${review.album_id}`
+                      : review.song_id
+                        ? `Canción #${review.song_id}`
+                        : 'Reseña'}
+                  </p>
+                  {editingReviewId === review.id ? (
+                    <div className="edit-review-form">
+                      <select
+                        value={editReviewForm.rating}
+                        onChange={(e) =>
+                          setEditReviewForm({
+                            ...editReviewForm,
+                            rating: parseFloat(e.target.value),
+                          })
+                        }
+                      >
+                        {[5, 4, 3, 2, 1].map((n) => (
+                          <option key={n} value={n}>
+                            {n} ★
+                          </option>
+                        ))}
+                      </select>
+                      <textarea
+                        value={editReviewForm.comment}
+                        onChange={(e) =>
+                          setEditReviewForm({ ...editReviewForm, comment: e.target.value })
+                        }
+                      />
+                      <div className="review-actions">
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={() => handleSaveReviewEdit(review.id)}
+                        >
+                          Guardar
+                        </button>
+                        <button type="button" onClick={() => setEditingReviewId(null)}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <p className="review-body-text" style={{fontStyle: 'italic', opacity: 0.5}}>Sin comentario.</p>
+                    <>
+                      {review.comment ? (
+                        <p className="review-body-text">{review.comment}</p>
+                      ) : (
+                        <p className="review-body-text" style={{ fontStyle: 'italic', opacity: 0.5 }}>
+                          Sin comentario.
+                        </p>
+                      )}
+                      <div className="review-actions">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingReviewId(review.id);
+                            setEditReviewForm({
+                              rating: review.rating,
+                              comment: review.comment || '',
+                            });
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button type="button" onClick={() => handleDeleteReview(review.id)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

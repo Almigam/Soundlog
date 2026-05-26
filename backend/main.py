@@ -143,6 +143,16 @@ async def startup_event():
                             ADD cover_image_url NVARCHAR(500) NULL;
                         END
                     """))
+                    conn.execute(text("""
+                        IF NOT EXISTS (
+                            SELECT * FROM sys.columns
+                            WHERE object_id = OBJECT_ID('albums')
+                            AND name = 'tags'
+                        )
+                        BEGIN
+                            ALTER TABLE albums ADD tags NVARCHAR(500) NULL;
+                        END
+                    """))
 
             await asyncio.to_thread(run_migrations)
             logger.info("✅ Migraciones manuales finalizadas exitosamente")
@@ -169,7 +179,7 @@ async def startup_event():
     async def seed_if_empty():
         try:
             from core.database import SessionLocal
-            from routes.admin import seed_catalog
+            from routes.admin import seed_catalog, update_seed_album_metadata
 
             db = SessionLocal()
             try:
@@ -180,6 +190,9 @@ async def startup_event():
                         result["albums_count"],
                         result["songs_count"],
                     )
+                fixed = update_seed_album_metadata(db)
+                if fixed:
+                    logger.info("✅ Portadas seed actualizadas: %s álbumes", fixed)
             finally:
                 db.close()
         except Exception as e:

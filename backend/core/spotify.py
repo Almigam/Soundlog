@@ -57,12 +57,25 @@ class SpotifyService:
                 pass
 
         tracks = []
-        for track in album['tracks']['items']:
-            tracks.append({
-                "title": track['name'],
-                "artist": track['artists'][0]['name'],
-                "duration": track['duration_ms'] // 1000
-            })
+        album_id = album['id']
+        offset = 0
+        limit = 50
+        while True:
+            page = self.sp.album_tracks(
+                album_id, limit=limit, offset=offset
+            )
+            for track in page['items']:
+                tracks.append({
+                    "title": track['name'],
+                    "artist": track['artists'][0]['name'],
+                    "duration": track['duration_ms'] // 1000,
+                })
+            if page['next'] is None:
+                break
+            offset += limit
+
+        genres = album.get("genres") or []
+        tags = ",".join(genres[:5]) if genres else ""
 
         return {
             "title": album['name'],
@@ -70,7 +83,8 @@ class SpotifyService:
             "release_year": release_year,
             "description": f"Album by {album['artists'][0]['name']}",
             "cover_image_url": album['images'][0]['url'] if album['images'] else None,
-            "tracks": tracks
+            "tags": tags,
+            "tracks": tracks,
         }
 
 

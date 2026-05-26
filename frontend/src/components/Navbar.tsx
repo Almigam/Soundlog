@@ -17,6 +17,7 @@ export function Navbar() {
   };
 
   return (
+    <>
     <nav className="navbar">
       <div className="container navbar-container">
         <div className="nav-left">
@@ -50,6 +51,11 @@ export function Navbar() {
           <Link to="/songs" className="nav-link" onClick={() => setIsMenuOpen(false)}>
             Canciones
           </Link>
+          {isAuthenticated && (
+            <Link to="/users" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+              Usuarios
+            </Link>
+          )}
 
           <div className="nav-divider" />
 
@@ -74,11 +80,12 @@ export function Navbar() {
           )}
         </div>
       </div>
-
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
     </nav>
+
+    <SearchModal
+      isOpen={isSearchOpen}
+      onClose={() => setIsSearchOpen(false)}
+    />
+    </>
   );
 }

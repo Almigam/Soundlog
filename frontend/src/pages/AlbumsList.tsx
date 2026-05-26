@@ -45,8 +45,8 @@ export function AlbumsList() {
         <>
           {albums.length === 0 ? (
             <div className="empty-catalog-msg">
-              <p>No hay álbumes todavía.</p>
-              <p>Usa <strong>LOG ALBUM</strong> en la barra superior para buscar en Spotify e importar uno.</p>
+              <p>Solo hay álbumes de ejemplo hasta que importes más.</p>
+              <p>Usa <strong>LOG ALBUM</strong> (mín. 3 letras) para buscar en Spotify e importar álbumes nuevos con todas sus canciones.</p>
             </div>
           ) : (
           <div className="poster-grid">

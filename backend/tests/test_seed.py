@@ -10,7 +10,7 @@ def test_seed_catalog_empty_db(db_session):
     result = seed_catalog(db_session)
     assert result["seeded"] is True
     assert result["albums_count"] == 3
-    assert result["songs_count"] == 9
+    assert result["songs_count"] == 13
 
 
 def test_seed_catalog_skips_when_not_empty(db_session):
