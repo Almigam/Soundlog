@@ -1,7 +1,6 @@
 """
 Tests de integración para el flujo de autenticación.
 """
-import pytest
 from fastapi import status
 
 
@@ -35,7 +34,7 @@ def test_register_duplicate_email(client):
             "full_name": "User 1"
         }
     )
-    
+
     # Segundo registro con mismo email
     response = client.post(
         "/api/v1/auth/register",
@@ -62,7 +61,7 @@ def test_login_success(client):
             "full_name": "Login User"
         }
     )
-    
+
     # Login
     response = client.post(
         "/api/v1/auth/login",
@@ -88,7 +87,7 @@ def test_login_wrong_password(client):
             "full_name": "Wrong User"
         }
     )
-    
+
     response = client.post(
         "/api/v1/auth/login",
         data={

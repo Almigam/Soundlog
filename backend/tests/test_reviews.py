@@ -79,7 +79,7 @@ def test_get_album_reviews(client, auth_headers, sample_album):
             "comment": "Perfecto"
         }
     )
-    
+
     response = client.get(f"/api/v1/reviews/album/{sample_album.id}")
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()) == 1
@@ -99,7 +99,7 @@ def test_update_review(client, auth_headers, sample_album):
         }
     )
     review_id = create_res.json()["id"]
-    
+
     # Actualizar
     response = client.patch(
         f"/api/v1/reviews/{review_id}",
@@ -124,14 +124,14 @@ def test_delete_review(client, auth_headers, sample_album):
         }
     )
     review_id = create_res.json()["id"]
-    
+
     # Eliminar
     response = client.delete(
         f"/api/v1/reviews/{review_id}",
         headers=auth_headers
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
-    
+
     # Verificar que ya no existe
     check = client.get(f"/api/v1/reviews/album/{sample_album.id}")
     assert len(check.json()) == 0
