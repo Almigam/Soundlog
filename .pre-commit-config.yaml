@@ -11,6 +11,11 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=1000]
 
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
@@ -25,4 +30,18 @@ repos:
         entry: python backend/scripts/run_ci_checks.py
         language: system
         files: ^backend/
+        pass_filenames: false
+
+      - id: frontend-lint
+        name: frontend eslint
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: frontend-test
+        name: frontend vitest
+        entry: npm --prefix frontend run test
+        language: system
+        files: ^frontend/
         pass_filenames: false
