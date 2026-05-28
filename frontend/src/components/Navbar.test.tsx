@@ -8,10 +8,11 @@ import { AuthContext } from '../context/AuthContext';
 const mockAuthValue = {
   isAuthenticated: false,
   user: null,
+  isLoading: false,
   login: vi.fn(),
   logout: vi.fn(),
-  register: vi.fn(),
-  loading: false,
+  refreshUser: vi.fn(async () => {}),
+  refreshToken: vi.fn(async () => {}),
 };
 
 describe('Navbar Component', () => {
@@ -41,7 +42,13 @@ describe('Navbar Component', () => {
     const authenticatedValue = {
       ...mockAuthValue,
       isAuthenticated: true,
-      user: { username: 'testuser', email: 'test@test.com' },
+      user: {
+        id: 1,
+        username: 'testuser',
+        email: 'test@test.com',
+        is_active: true,
+        created_at: new Date().toISOString(),
+      },
     };
 
     render(
