@@ -84,7 +84,8 @@ async def import_spotify_album(
         artist=details['artist'],
         release_year=details['release_year'],
         description=details['description'],
-        cover_image_url=details['cover_image_url']
+        cover_image_url=details['cover_image_url'],
+        tags=details.get('tags') or None,
     )
     db.add(db_album)
     db.commit()

@@ -35,6 +35,7 @@ def seed_catalog(db: Session) -> dict:
             release_year=item["release_year"],
             description=item["description"],
             cover_image_url=item["cover_image_url"],
+            tags=item.get("tags"),
         )
         db.add(album)
         db.flush()
@@ -81,3 +82,28 @@ async def seed_catalog_endpoint(db: Session = Depends(get_db)):
             )
 
     return seed_catalog(db)
+
+
+def update_seed_album_metadata(db: Session) -> int:
+    """Sincroniza portadas y etiquetas de álbumes seed existentes."""
+    updated = 0
+    for item in SAMPLE_ALBUMS:
+        album = (
+            db.query(Album)
+            .filter(Album.title == item["title"], Album.artist == item["artist"])
+            .first()
+        )
+        if album:
+            album.cover_image_url = item["cover_image_url"]
+            album.tags = item.get("tags")
+            updated += 1
+    if updated:
+        db.commit()
+    return updated
+
+
+@router.post("/fix-seed-covers")
+async def fix_seed_covers_endpoint(db: Session = Depends(get_db)):
+    """Actualiza portadas y etiquetas de los álbumes de ejemplo."""
+    updated = update_seed_album_metadata(db)
+    return {"updated_albums": updated}

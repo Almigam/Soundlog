@@ -83,6 +83,7 @@ class AlbumBase(BaseModel):
     release_year: Optional[int] = Field(None, ge=1900, le=2100)
     description: Optional[str] = Field(None, max_length=1000)
     cover_image_url: Optional[str] = Field(None, max_length=500)
+    tags: Optional[str] = Field(None, max_length=500)
 
     @validator("description")
     def sanitize_description(cls, v):
@@ -102,6 +103,7 @@ class AlbumUpdate(BaseModel):
     release_year: Optional[int] = Field(None, ge=1900, le=2100)
     description: Optional[str] = Field(None, max_length=1000)
     cover_image_url: Optional[str] = Field(None, max_length=500)
+    tags: Optional[str] = Field(None, max_length=500)
 
 
 class AlbumResponse(AlbumBase):
@@ -171,6 +173,11 @@ class ReviewCreate(ReviewBase):
         if album_id is not None and song_id is not None:
             raise ValueError("Especifica solo album_id o song_id, no ambos")
         return song_id
+
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[float] = Field(None, ge=1, le=5)
+    comment: Optional[str] = Field(None, max_length=1000)
 
 
 class ReviewResponse(ReviewBase):

@@ -3,13 +3,15 @@ Rutas de Usuarios
 """
 
 import logging
+from typing import List
 
 from core.blob_storage import blob_storage
 from core.database import get_db
-from core.models import User
+from core.models import User, UserFollow
 from core.schemas import UserResponse, UserUpdate
 from core.security import get_current_user
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -79,6 +81,89 @@ async def get_my_profile(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         )
     return user
+
+
+@router.get("/search", response_model=List[UserResponse])
+async def search_users(
+    q: str = Query(..., min_length=2),
+    db: Session = Depends(get_db),
+):
+    """Buscar usuarios por nombre de usuario"""
+    term = f"%{q.strip().lower()}%"
+    users = (
+        db.query(User)
+        .filter(
+            or_(
+                func.lower(User.username).like(term),
+                func.lower(User.full_name).like(term),
+            )
+        )
+        .limit(20)
+        .all()
+    )
+    return users
+
+
+@router.post("/{username}/follow", status_code=status.HTTP_201_CREATED)
+async def follow_user(
+    username: str,
+    current_user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if target.id == current_user_id:
+        raise HTTPException(status_code=400, detail="No puedes seguirte a ti mismo")
+
+    existing = (
+        db.query(UserFollow)
+        .filter(
+            UserFollow.follower_id == current_user_id,
+            UserFollow.following_id == target.id,
+        )
+        .first()
+    )
+    if existing:
+        return {"message": "Ya sigues a este usuario"}
+
+    db.add(UserFollow(follower_id=current_user_id, following_id=target.id))
+    db.commit()
+    return {"message": f"Ahora sigues a {username}"}
+
+
+@router.delete("/{username}/follow", status_code=status.HTTP_204_NO_CONTENT)
+async def unfollow_user(
+    username: str,
+    current_user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    follow = (
+        db.query(UserFollow)
+        .filter(
+            UserFollow.follower_id == current_user_id,
+            UserFollow.following_id == target.id,
+        )
+        .first()
+    )
+    if not follow:
+        raise HTTPException(status_code=404, detail="No sigues a este usuario")
+
+    db.delete(follow)
+    db.commit()
+
+
+@router.get("/{username}/followers/count")
+async def followers_count(username: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    count = db.query(UserFollow).filter(UserFollow.following_id == user.id).count()
+    return {"username": username, "followers_count": count}
 
 
 @router.get("/{username}", response_model=UserResponse)

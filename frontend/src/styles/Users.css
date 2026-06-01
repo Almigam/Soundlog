@@ -1,0 +1,137 @@
+.users-page {
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+.users-search-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.users-search-form input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.users-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.user-result-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.user-result-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.user-result-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-result-info {
+  flex: 1;
+}
+
+.user-result-info p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.btn-unfollow {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+}
+
+.users-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 2rem;
+}
+
+.album-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.album-tag {
+  background: var(--orange-subtle);
+  color: var(--orange);
+  border: 1px solid rgba(255, 128, 0, 0.25);
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.song-row-expanded {
+  flex-direction: column;
+  align-items: stretch !important;
+  gap: 0.75rem;
+  padding-bottom: 1rem !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.song-rate-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.song-rate-form select,
+.song-rate-form input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.song-rate-form input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.review-actions button {
+  font-size: 0.8rem;
+  padding: 6px 12px;
+}

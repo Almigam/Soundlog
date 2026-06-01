@@ -10,6 +10,7 @@ import { AlbumsList } from './pages/AlbumsList';
 import { AlbumDetail } from './pages/AlbumDetail';
 import { SongsList } from './pages/SongsList';
 import { Profile } from './pages/Profile';
+import { Users } from './pages/Users';
 import './styles/global.css';
 
 function App() {
@@ -25,6 +26,14 @@ function App() {
             <Route path="/albums" element={<AlbumsList />} />
             <Route path="/albums/:id" element={<AlbumDetail />} />
             <Route path="/songs" element={<SongsList />} />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <Users />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/profile"
               element={

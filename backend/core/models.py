@@ -3,7 +3,15 @@ Modelos de base de datos
 """
 
 from core.database import Base
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.sql import func
 
 
@@ -36,9 +44,24 @@ class Album(Base):
     release_year = Column(Integer)
     description = Column(String(1000))
     cover_image_url = Column(String(500))
+    tags = Column(String(500))  # etiquetas separadas por coma
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(),
                         onupdate=func.now())
+
+
+class UserFollow(Base):
+    """Seguidores entre usuarios"""
+
+    __tablename__ = "user_follows"
+    __table_args__ = (
+        UniqueConstraint("follower_id", "following_id", name="uq_follow"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    follower_id = Column(Integer, nullable=False, index=True)
+    following_id = Column(Integer, nullable=False, index=True)
+    created_at = Column(DateTime, server_default=func.now())
 
 
 class Song(Base):

@@ -6,7 +6,7 @@ from typing import List
 
 from core.database import get_db
 from core.models import Album, Review, Song
-from core.schemas import ReviewCreate, ReviewResponse
+from core.schemas import ReviewCreate, ReviewResponse, ReviewUpdate
 from core.security import get_current_user
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -136,6 +136,40 @@ async def create_review(
     db.commit()
     db.refresh(db_review)
     return db_review
+
+
+@router.patch("/{review_id}", response_model=ReviewResponse)
+async def update_review(
+    review_id: int,
+    updates: ReviewUpdate,
+    current_user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Actualizar una reseña — solo el autor"""
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Reseña no encontrada"
+        )
+    if review.user_id != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para editar esta reseña",
+        )
+
+    data = updates.model_dump(exclude_unset=True)
+    if "rating" in data and not 0 <= data["rating"] <= 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El rating debe estar entre 0 y 5",
+        )
+
+    for field, value in data.items():
+        setattr(review, field, value)
+
+    db.commit()
+    db.refresh(review)
+    return review
 
 
 @router.delete("/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
