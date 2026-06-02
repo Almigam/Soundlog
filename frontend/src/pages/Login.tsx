@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import { authAPI } from '../api';
 import '../styles/Auth.css';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -31,19 +32,15 @@ export function Login() {
       loginParams.append('username', formData.username);
       loginParams.append('password', formData.password);
 
-      const loginResponse = await authAPI.login(loginParams as any);
-      // Para obtener los datos del usuario, hacemos un call adicional
-      // Por ahora, guardamos datos mínimos
-      login({
-        id: 0,
-        email: '',
-        username: formData.username,
-        is_active: true,
-        created_at: new Date().toISOString(),
-      }, loginResponse.data.access_token);
+      await authAPI.login(loginParams);
+      // Los datos del usuario vienen del backend, pero el login
+      // inicial solo devuelve tokens (ahora en cookies).
+      // Llamamos a refreshUser para obtener los datos completos del usuario.
+      await refreshUser();
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Credenciales inválidas');
+    } catch (err) {
+      const axiosError = err as AxiosError<{ detail: string }>;
+      setError(axiosError.response?.data?.detail || 'Credenciales inválidas');
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Song, songsAPI } from '../api';
 import '../styles/Songs.css';
 
@@ -8,22 +8,22 @@ export function SongsList() {
   const [error, setError] = useState('');
   const [skip, setSkip] = useState(0);
 
-  useEffect(() => {
-    loadSongs();
-  }, [skip]);
-
-  const loadSongs = async () => {
+  const loadSongs = useCallback(async () => {
     try {
       setLoading(true);
       const response = await songsAPI.getAll(skip, 20);
       setSongs(response.data);
-    } catch (err: any) {
+    } catch (err) {
       setError('Error al cargar canciones');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [skip]);
+
+  useEffect(() => {
+    loadSongs();
+  }, [loadSongs]);
 
   return (
     <div className="container" style={{ paddingTop: '3rem', paddingBottom: '5rem' }}>

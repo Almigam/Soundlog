@@ -14,7 +14,7 @@ pytest backend/tests -v
 
 ### Configuración
 - **Base de Datos:** Se utiliza una base de datos SQLite en memoria (`sqlite://`) con `StaticPool` para asegurar aislamiento y velocidad.
-- **Fixtures:** 
+- **Fixtures:**
   - `db_session`: Proporciona una sesión de BD limpia para cada test.
   - `client`: Proporciona un `TestClient` de FastAPI con la dependencia de BD inyectada.
 

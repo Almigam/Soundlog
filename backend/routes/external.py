@@ -1,4 +1,5 @@
 import logging
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
@@ -6,6 +7,7 @@ from core.spotify import spotify_service
 from core.security import get_current_user
 from core.database import get_db
 from core.models import Album, Song
+from core.redis_config import get_redis
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -28,7 +30,7 @@ class SpotifyAlbumSearchResponse(BaseModel):
     dependencies=[Depends(get_current_user)],
 )
 async def search_spotify_albums(q: str):
-    """Buscar álbumes en Spotify"""
+    """Buscar álbumes en Spotify con caché en Redis"""
     query = (q or "").strip()
     if len(query) < 2:
         raise HTTPException(
@@ -45,8 +47,29 @@ async def search_spotify_albums(q: str):
             ),
         )
 
+    # 1. Intentar obtener de Redis
+    redis = get_redis()
+    cache_key = f"spotify_search:{query.lower()}"
+    if redis:
+        try:
+            cached_data = redis.get(cache_key)
+            if cached_data:
+                logger.info(f"Caché hit para Spotify search: {query}")
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.warning(f"Error leyendo de Redis: {e}")
+
     try:
+        # 2. Si no hay caché, buscar en Spotify
         results = spotify_service.search_albums(query)
+
+        # 3. Guardar en Redis por 1 hora (3600s)
+        if redis and results:
+            try:
+                redis.setex(cache_key, 3600, json.dumps(results))
+            except Exception as e:
+                logger.warning(f"Error escribiendo en Redis: {e}")
+
         return results
     except HTTPException:
         raise

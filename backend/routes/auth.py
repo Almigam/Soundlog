@@ -5,6 +5,7 @@ Rutas de Autenticación mejoradas con seguridad
 import logging
 from datetime import timedelta
 
+from core.config import settings
 from core.database import get_db
 from core.models import User
 from core.schemas import TokenResponse, UserCreate, UserResponse
@@ -21,7 +22,7 @@ from core.security_utils import (
     login_rate_limiter,
     username_validator
 )
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -122,16 +123,13 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     """
     Iniciar sesión y obtener tokens (access + refresh).
-
-    Incluye:
-    - Rate limiting (máximo 5 intentos fallidos por 15 minutos)
-    - Validación segura de credenciales
-    - Tokens JWT con expiración
+    Los tokens se envían tanto en el cuerpo como en Cookies HttpOnly por seguridad.
     """
 
     # Rate limiting
@@ -140,10 +138,10 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Demasiados intentos fallidos. Intenta más tarde.",
-            headers={"Retry-After": "900"},  # 15 minutos en segundos
+            headers={"Retry-After": "900"},
         )
 
-    # Buscar usuario por email o username
+    # Buscar usuario
     user = (
         db.query(User)
         .filter(
@@ -153,7 +151,7 @@ async def login(
         .first()
     )
 
-    # Verificar contraseña (sempre hacer timing-safe check)
+    # Verificar contraseña
     password_correct = user is not None and verify_password(
         form_data.password, str(user.hashed_password)
     )
@@ -164,12 +162,9 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email/usuario o contraseña incorrectos",
-            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Verificar si usuario está activo
     if not user.is_active:
-        logger.warning(f"Login attempt with inactive user: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Usuario desactivado"
         )
@@ -178,9 +173,31 @@ async def login(
     access_token = create_access_token(
         data={"sub": str(user.id)}, expires_delta=timedelta(minutes=30)
     )
-
     refresh_token = create_refresh_token(
         data={"sub": str(user.id)}, expires_delta=timedelta(days=7)
+    )
+
+    # Establecer Cookies HttpOnly
+    cookie_params = {
+        "httponly": True,
+        "secure": settings.cookie_secure,
+        "samesite": settings.cookie_samesite,
+        "domain": settings.cookie_domain or None,
+        "path": "/",
+    }
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=1800,  # 30 min
+        **cookie_params
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=7 * 24 * 3600,  # 7 días
+        **cookie_params
     )
 
     logger.info(f"Successful login for user: {user.username}")
@@ -189,23 +206,17 @@ async def login(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        expires_in=1800,  # 30 minutos en segundos
+        expires_in=1800,
     )
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(
+    response: Response,
     current_user_id: int = Depends(get_current_user_refresh),
     db: Session = Depends(get_db),
 ):
-    """
-    Obtener nuevo access token usando refresh token.
-
-    El refresh token tiene mayor duración y se usa
-    para obtener nuevos access tokens sin re-autenticación.
-    """
-
-    # Verificar que el usuario existe y está activo
+    """Refrescar access token y actualizar cookie."""
     user = db.query(User).filter(User.id == current_user_id).first()
     if not user or not user.is_active:
         raise HTTPException(
@@ -213,19 +224,43 @@ async def refresh_access_token(
             detail="Usuario no válido o inactivo",
         )
 
-    # Crear nuevo access token
     new_access_token = create_access_token(
         data={"sub": str(user.id)}, expires_delta=timedelta(minutes=30)
     )
 
-    logger.debug(f"Token refreshed for user: {user.username}")
+    # Actualizar cookie
+    response.set_cookie(
+        key="access_token",
+        value=new_access_token,
+        max_age=1800,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        domain=settings.cookie_domain or None,
+        path="/",
+    )
 
     return TokenResponse(
         access_token=new_access_token,
-        refresh_token=None,  # No refrescar el refresh token por seguridad
+        refresh_token=None,
         token_type="bearer",
         expires_in=1800,
     )
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    """Eliminar cookies de sesión."""
+    params = {
+        "path": "/",
+        "domain": settings.cookie_domain or None,
+        "httponly": True,
+        "secure": settings.cookie_secure,
+        "samesite": settings.cookie_samesite,
+    }
+    response.delete_cookie(key="access_token", **params)
+    response.delete_cookie(key="refresh_token", **params)
+    return {"message": "Sesión cerrada correctamente"}
 
 
 @router.post("/verify", status_code=status.HTTP_200_OK)

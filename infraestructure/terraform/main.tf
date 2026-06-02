@@ -118,6 +118,36 @@ resource "azurerm_mssql_database" "main" {
 }
 
 # ──────────────────────────────────────────────
+#  REDIS CACHE — Para optimizar Spotify API
+# ──────────────────────────────────────────────
+resource "azurerm_redis_cache" "main" {
+  name                = "soundlog-redis"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  capacity            = 0
+  family              = "C"
+  sku_name            = "Basic" # ~15€/mes, suficiente para desarrollo
+  enable_non_ssl_port = false
+  minimum_tls_version = "1.2"
+
+  tags = {
+    project    = "soundlog"
+    managed_by = "terraform"
+  }
+}
+
+resource "azurerm_key_vault_secret" "redis_connection_string" {
+  name         = "REDIS-CONNECTION-STRING"
+  key_vault_id = azurerm_key_vault.main.id
+  value        = "rediss://:${azurerm_redis_cache.main.primary_access_key}@${azurerm_redis_cache.main.hostname}:${azurerm_redis_cache.main.ssl_port}/0"
+
+  depends_on = [
+    azurerm_key_vault.main,
+    azurerm_key_vault_access_policy.terraform_executor
+  ]
+}
+
+# ──────────────────────────────────────────────
 #  MONITORING — Log Analytics + App Insights
 # ──────────────────────────────────────────────
 resource "azurerm_log_analytics_workspace" "main" {
