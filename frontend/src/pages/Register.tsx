@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import { authAPI } from '../api';
 import '../styles/Auth.css';
 
 export function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -43,7 +44,7 @@ export function Register() {
 
     setLoading(true);
     try {
-      const response = await authAPI.register({
+      await authAPI.register({
         email: formData.email,
         username: formData.username,
         password: formData.password,
@@ -54,16 +55,17 @@ export function Register() {
       loginParams.append('username', formData.username);
       loginParams.append('password', formData.password);
 
-      const loginResponse = await authAPI.login(loginParams as any);
+      await authAPI.login(loginParams);
 
       setSuccess('¡Registro exitoso! Iniciando sesión...');
 
-      setTimeout(() => {
-        login(response.data, loginResponse.data.access_token);
+      setTimeout(async () => {
+        await refreshUser();
         navigate('/');
       }, 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al registrarse');
+    } catch (err) {
+      const axiosError = err as AxiosError<{ detail: string }>;
+      setError(axiosError.response?.data?.detail || 'Error al registrarse');
     } finally {
       setLoading(false);
     }

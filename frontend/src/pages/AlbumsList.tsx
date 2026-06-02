@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Album, albumsAPI } from '../api';
 import { AlbumCard } from '../components/AlbumCard';
 import '../styles/Albums.css';
@@ -9,22 +9,22 @@ export function AlbumsList() {
   const [error, setError] = useState('');
   const [skip, setSkip] = useState(0);
 
-  useEffect(() => {
-    loadAlbums();
-  }, [skip]);
-
-  const loadAlbums = async () => {
+  const loadAlbums = useCallback(async () => {
     try {
       setLoading(true);
       const response = await albumsAPI.getAll(skip, 18);
       setAlbums(response.data);
-    } catch (err: any) {
+    } catch (err) {
       setError('Error al cargar álbumes');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [skip]);
+
+  useEffect(() => {
+    loadAlbums();
+  }, [loadAlbums]);
 
   return (
     <div className="container" style={{ paddingTop: '3rem', paddingBottom: '5rem' }}>

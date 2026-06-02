@@ -60,6 +60,11 @@ class Settings(BaseSettings):
         default=["GET", "POST", "PUT", "DELETE", "PATCH"])
     allow_headers: List[str] = Field(default=["*"])
 
+    # ─────────────────── COOKIES ───────────────────
+    cookie_secure: bool = Field(default=False)
+    cookie_samesite: str = Field(default="lax")
+    cookie_domain: str = Field(default="")
+
     # ─────────────────── LOGGING ───────────────────
     log_level: str = Field(default="INFO")
     log_file: str = Field(default="logs/app.log")
@@ -80,6 +85,9 @@ class Settings(BaseSettings):
     # ─────────────────── SPOTIFY ───────────────────
     spotify_client_id: str = Field(default="")
     spotify_client_secret: str = Field(default="")
+
+    # ─────────────────── REDIS ───────────────────
+    redis_url: str = Field(default="redis://localhost:6379/0")
 
     # ─────────────────── HEADERS SEGURIDAD ───────────────────
     enable_hsts: bool = Field(default=True)
@@ -175,6 +183,7 @@ if settings.keyvault_url:
             "SPOTIFY-CLIENT-SECRET": "spotify_client_secret",
             "ALLOWED-ORIGINS": "allowed_origins",
             "APPLICATION-INSIGHTS-CONNECTION-STRING": "applicationinsights_connection_string",
+            "REDIS-CONNECTION-STRING": "redis_url",
         }
 
         loaded_secrets = []

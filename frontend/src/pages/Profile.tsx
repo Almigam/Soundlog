@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Review, reviewsAPI, usersAPI } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -17,15 +17,7 @@ export function Profile() {
   const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
   const [editReviewForm, setEditReviewForm] = useState({ rating: 5, comment: '' });
 
-  useEffect(() => {
-    loadMyReviews();
-    if (user) {
-      setEditForm({ full_name: user.full_name || '' });
-      loadFollowers();
-    }
-  }, [user]);
-
-  const loadFollowers = async () => {
+  const loadFollowers = useCallback(async () => {
     if (!user) return;
     try {
       const res = await usersAPI.getFollowersCount(user.username);
@@ -33,9 +25,9 @@ export function Profile() {
     } catch {
       setFollowersCount(0);
     }
-  };
+  }, [user]);
 
-  const loadMyReviews = async () => {
+  const loadMyReviews = useCallback(async () => {
     try {
       const response = await reviewsAPI.getMyReviews();
       setReviews(response.data);
@@ -44,15 +36,22 @@ export function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadMyReviews();
+    if (user) {
+      setEditForm({ full_name: user.full_name || '' });
+      loadFollowers();
+    }
+  }, [user, loadMyReviews, loadFollowers]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdateLoading(true);
     try {
       const response = await usersAPI.updateProfile(editForm);
-      const token = localStorage.getItem('access_token');
-      if (token) login(response.data, token);
+      login(response.data);
       setIsEditing(false);
     } catch {
       alert('Error al actualizar perfil');

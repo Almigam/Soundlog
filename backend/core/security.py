@@ -16,7 +16,7 @@ if not hasattr(bcrypt, "__about__"):
 
 from core.config import settings
 from core.security_utils import password_validator
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from passlib.context import CryptContext
@@ -30,8 +30,42 @@ pwd_context = CryptContext(
     bcrypt__rounds=12,  # Más rondas = más seguro pero más lento
 )
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+# OAuth2 scheme — mantenemos para compatibilidad con docs de FastAPI
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login",
+    auto_error=False
+)
+
+
+def get_token_from_cookie_or_header(request: Request) -> Optional[str]:
+    """
+    Extraer token de cookie HttpOnly o del header Authorization.
+    Prioriza la cookie por seguridad.
+    """
+    # 1. Intentar desde cookie
+    token = request.cookies.get("access_token")
+    if token:
+        return token
+
+    # 2. Fallback al header Authorization (útil para desarrollo/testing)
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ")[1]
+
+    return None
+
+
+def get_refresh_token_from_cookie_or_header(request: Request) -> Optional[str]:
+    """Extraer refresh token de cookie o header."""
+    token = request.cookies.get("refresh_token")
+    if token:
+        return token
+
+    auth_header = request.headers.get("X-Refresh-Token")
+    if auth_header:
+        return auth_header
+
+    return None
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -174,7 +208,9 @@ def verify_token(
         return None, "Error al procesar token"
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
+async def get_current_user(
+    token: Optional[str] = Depends(get_token_from_cookie_or_header)
+) -> int:
     """
     Obtener ID del usuario actual desde el token JWT.
     Realiza validaciones de seguridad.
@@ -185,6 +221,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    if not token:
+        raise credential_exception
+
     user_id, error = verify_token(token, token_type="access")
     if error or user_id is None:
         logger.warning(f"Unauthorized access attempt: {error}")
@@ -193,7 +232,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> int:
     return user_id
 
 
-async def get_current_user_refresh(token: str = Depends(oauth2_scheme)) -> int:
+async def get_current_user_refresh(
+    token: Optional[str] = Depends(get_refresh_token_from_cookie_or_header)
+) -> int:
     """
     Obtener usuario desde refresh token.
     Usado en endpoint de refresh.
@@ -203,6 +244,9 @@ async def get_current_user_refresh(token: str = Depends(oauth2_scheme)) -> int:
         detail="Refresh token inválido o expirado",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not token:
+        raise credential_exception
 
     user_id, error = verify_token(token, token_type="refresh")
     if error or user_id is None:

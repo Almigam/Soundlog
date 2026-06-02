@@ -54,14 +54,33 @@ export interface SpotifyAlbum {
   external_url: string;
 }
 
+export interface RegisterData {
+  email: string;
+  username: string;
+  password?: string;
+  full_name?: string;
+}
+
+export interface AlbumCreateData {
+  title: string;
+  artist: string;
+  release_year?: number;
+  description?: string;
+  cover_image_url?: string;
+  tags?: string;
+}
+
 // Auth API
 export const authAPI = {
-  login: (formData: FormData) =>
+  login: (formData: URLSearchParams) =>
     api.post<LoginResponse>('/api/v1/auth/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     }),
 
-  register: (userData: any) =>
+  logout: () =>
+    api.post('/api/v1/auth/logout'),
+
+  register: (userData: RegisterData) =>
     api.post<User>('/api/v1/auth/register', userData),
 
   getMe: () =>
@@ -100,7 +119,7 @@ export const albumsAPI = {
   getById: (id: number) =>
     api.get<Album>(`/api/v1/albums/${id}`),
 
-  create: (albumData: any) =>
+  create: (albumData: AlbumCreateData) =>
     api.post<Album>('/api/v1/albums/', albumData),
 };
 

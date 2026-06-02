@@ -2,17 +2,12 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'ax
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-interface TokenData {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-}
-
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Crucial para enviar/recibir cookies HttpOnly
   // Seguridad: limitar payload
   maxBodyLength: 10 * 1024 * 1024, // 10MB
   maxContentLength: 10 * 1024 * 1024,
@@ -22,10 +17,8 @@ const api: AxiosInstance = axios.create({
 
 // ──────────────────── REQUEST INTERCEPTOR ────────────────────
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('access_token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  // Ya no necesitamos inyectar el token desde localStorage.
+  // El navegador enviará la cookie access_token automáticamente.
 
   // Headers de seguridad adicionales
   if (config.headers) {
@@ -41,58 +34,29 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // ──────────────────── RESPONSE INTERCEPTOR ────────────────────
 api.interceptors.response.use(
   (response) => {
-    // Renovar token si viene en la respuesta (refresh)
-    if (response.data?.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-      if (response.data.refresh_token) {
-        localStorage.setItem('refresh_token', response.data.refresh_token);
-      }
-    }
     return response;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Manejar token expirado
+    // Manejar token expirado (401)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem('refresh_token');
+      try {
+        // Intentar renovar token.
+        // El endpoint /refresh leerá la cookie refresh_token y seteará la nueva access_token.
+        await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true });
 
-      if (refreshToken) {
-        try {
-          // Intentar renovar token
-          const refreshResponse = await axios.post<TokenData>(
-            `${API_BASE_URL}/api/v1/auth/refresh`,
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${refreshToken}`,
-              },
-            }
-          );
-
-          const { access_token } = refreshResponse.data;
-          localStorage.setItem('access_token', access_token);
-
-          // Reintentar request original
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${access_token}`;
-          }
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh token expiró
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
+        // Reintentar request original
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Si el refresh falla (ej. cookie expirada), limpiar sesión
+        localStorage.removeItem('user'); // Solo guardamos info de usuario no sensible
+        if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
-          return Promise.reject(refreshError);
         }
-      } else {
-        // Sin refresh token, ir a login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
     }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Album, Song, Review, albumsAPI, songsAPI, reviewsAPI } from '../api';
 import { useAuth } from '../hooks/useAuth';
@@ -23,11 +23,7 @@ export function AlbumDetail() {
     Record<number, { rating: number; comment: string }>
   >({});
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const albumId = parseInt(id!);
@@ -45,7 +41,11 @@ export function AlbumDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
