@@ -46,9 +46,11 @@ api.interceptors.response.use(
       try {
         // Intentar renovar token.
         // El endpoint /refresh leerá la cookie refresh_token y seteará la nueva access_token.
-        await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true });
+        const refreshUrl = `${API_BASE_URL.replace(/\/$/, '')}/api/v1/auth/refresh`;
+        await axios.post(refreshUrl, {}, { withCredentials: true });
 
         // Reintentar request original
+
         return api(originalRequest);
       } catch (refreshError) {
         // Si el refresh falla (ej. cookie expirada), limpiar sesión

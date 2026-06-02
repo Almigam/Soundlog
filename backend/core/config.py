@@ -61,8 +61,8 @@ class Settings(BaseSettings):
     allow_headers: List[str] = Field(default=["*"])
 
     # ─────────────────── COOKIES ───────────────────
-    cookie_secure: bool = Field(default=False)
-    cookie_samesite: str = Field(default="lax")
+    cookie_secure: bool = Field(default=True)  # Obligatorio para SameSite=None
+    cookie_samesite: str = Field(default="none")  # Necesario para cross-domain en Azure
     cookie_domain: str = Field(default="")
 
     # ─────────────────── LOGGING ───────────────────
