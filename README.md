@@ -2,6 +2,8 @@
 
 Soundlog es una plataforma web de reseñas musicales. Los usuarios pueden registrarse, importar albumes desde Spotify, calificar canciones y albumes, escribir resenas, seguir a otros usuarios y explorar el catalogo musical de la comunidad.
 
+# WEB
+https://soundlogdevfrontend.z28.web.core.windows.net/
 ---
 
 ## Tabla de contenidos
